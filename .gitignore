@@ -1,0 +1,7 @@
+# Generated maintenance files; gate also rejects explicitly staged material.
+__pycache__/
+*.py[cod]
+.venv/
+.cache/
+build/
+dist/
