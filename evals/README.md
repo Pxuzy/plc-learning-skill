@@ -1,32 +1,46 @@
-# Maintainer Checks
+# 维护检查与评测
 
-## Synthetic fixtures
-
-The [synthetic PLC fixtures](fixtures/README.md) are source-only cases for future Skill evaluation. They are not loaded during runtime invocation, are not certified compilable or safe, and do not represent vendor project formats.
-
-These checks are optional maintenance aids and are not part of ordinary Skill invocation or explanation. Run from the repository root:
+这些检查是仓库维护工具，不属于 Skill 普通调用或 PLC 源码讲解流程。基础结构检查仅使用 Python 标准库，在仓库根目录运行：
 
 ```sh
-python3 evals/check_foundation.py
+python3 -B evals/check_foundation.py
 ```
 
-The checker uses only the Python standard library and validates required files, local Markdown links, metadata basics, and runtime wording. Passing it does not prove explanation quality, platform behavior, host discovery compatibility, or Python-free target compatibility.
+它检查必需文件、本地 Markdown 链接、基础元数据和部分文档结构。通过不代表教学质量、平台发现/加载、无 Python 环境兼容或 PLC 语义正确。
 
-## Manual no-Python walkthrough
+生成详细手册后，可在仓库外的隔离目录用合成或获准输入执行源码覆盖检查：
 
-Use plain ST and Ladder excerpts pasted directly into an invocation. Do not provide a vendor project or run a script. Ask for a detailed beginner explanation and manually check that each response:
+```sh
+python3 -B scripts/validate_handbook.py --source path/to/input.st --handbook path/to/handbook.md
+```
 
-1. Limits claims to the visible excerpt and preserves its source characters in the teaching copy.
-2. Adds `AI:` to each feasible non-empty source line, retains original comments, and explains any omission.
-3. Explains the block's role, condition, read/write effects, and execution causality.
-4. Distinguishes facts, paper-trace assumptions, inference, and unknowns.
-5. Includes a separate Critical review with evidence limits and honest validation status.
+该检查只确认固定章节、变量表和请求源码是否完整出现在“源码”代码块中；失败输出只报告类别，不回显源码，也不替代人工教学审阅、品牌语义核对、PLC 编译或运行验证。
 
-For the ST case, use a short `IF` with an assignment and `END_IF`. In addition to the checks above, verify that the explanation gives a concrete labeled paper trace when initial values can be grounded, and identifies what is missing if no grounded trace is possible.
+## 输入与隐私边界
 
-### Vendor-neutral Ladder walkthrough
+- 只有获准后才在仓库外的本机隔离环境使用评测输入；输入保持只读，评测输出也留在隔离目录。
+- 不将测试输入的源码、变量、业务逻辑、讲解结果、逐字模型输出、日志、哈希或可识别摘要写进仓库、Skill、模板、公开示例或评测账本。
+- 仓库只保存合成回归、通用检查逻辑和与具体工程无关的脱敏质量结论。若无法确认某项结论已充分抽象，停止写回。
+- 不修改外部 PLC 工程源码。评测结束后不擅自删除用户资料。
 
-Paste this small vendor-neutral representation and state that its bracket/coil notation is an abstract input for this walkthrough only:
+普通文本讲解不得因 Python、shell、网络、厂商资料或解析器不可用而阻断；维护检查器使用 Python 标准库。
+
+## 无 Python 的人工走查
+
+直接在新会话中粘贴小型 ST 或 Ladder 文本，不提供厂商工程包、不运行脚本。请求详细的初学者讲解，并人工检查：
+
+1. 输出是否限制在可见片段，并在“源码”章节完整呈现请求范围内的可读源码，保留字符和原注释；不能用“源码见输入”或摘要代替，长文可分段但不得漏掉请求范围。
+2. 是否区分逐行核对与选择性注释；普通 IF 条件、直接赋值和闭合符默认不加转述性注释。任何新增 `AI:` 注释都须有源码依据、提供正文未表达的信息，并逐条通过删除测试；删除后无具体信息损失或内容已被别处表达，就应删除。
+3. 是否说明代码块职责、条件、读写、执行因果和状态结果。
+4. 若存在可核对的变量声明或工程对象，变量表是否按具体变量及声明/作用域逐项记录；方向、类型和读写者/位置是否分别依据可见证据，不把多个变量合并成“混合方向”。声明不可见时才标为未知，并指出缺少的资料。
+5. 是否区分事实、纸面轨迹假设、推断和未知。
+6. 是否在独立的批判性审查中说明证据边界与未执行验证。
+
+ST 走查可用简短的 `IF`、赋值和 `END_IF` 合成代码；专门检查回答是否把条件行或赋值行换句话写成行内注释，若只是复述可见语法/赋值或重复正文，删除后不应造成有意义的信息损失。若初始值可明确假设，应给出有标签的纸面轨迹，否则指出缺少什么。
+
+## 厂商中立 Ladder 走查
+
+可粘贴以下合成表示，并说明括号/线圈符号仅为本次走查的抽象输入：
 
 ```text
 Rung 1:
@@ -34,14 +48,19 @@ Rung 1:
                +--[ Bypass ]--+
 ```
 
-Check that the answer preserves the visible layout and relationships, explains the series `Start` path and the parallel `Permit`/`Bypass` paths in represented order, and identifies visible condition reads and the `Run` write. Check that series/parallel relationships and branch joins are described only when visually clear, and that cropped, flattened, or ambiguous layout or undocumented instruction meaning remains unknown. The response must not invent an unseen IDE/network or vendor-specific semantics. Require a labeled paper trace when initial values and visible semantics can be grounded; check branch decisions, resulting writes, and retained values. Otherwise, require the answer to name the missing values or semantics that prevent a grounded trace. No runtime result may be claimed. Check source-to-teaching-copy correspondence and that any annotation format does not obscure the rung layout.
+检查回答是否保留图面关系，并按表示顺序说明 `Start` 串联路径与 `Permit`/`Bypass` 并联路径、可见条件读取和 `Run` 输出。仅在关系清楚时说明串并联和分支汇合；裁切、扁平化、歧义布局或未定义的厂商指令语义必须标未知。不能编造不可见的 IDE 网络或厂商行为。若初值和图示语义足以支撑纸面轨迹，须标注假设并说明分支判断、写入和保留值；否则说明阻断轨迹的证据缺口。不得声称获得运行结果。核对源码与教学副本的一致性，避免注释破坏 Ladder 图面。
 
-Then ask a brief factual question and check that the response stays brief and does not force the full teaching format. These walkthroughs need no Python, scripts, shell, packages, network, or vendor adapter. They are manual acceptance checks, not vendor or runtime certification. The Ladder case is specified here but has not been model-executed; record a fresh walkthrough and its observed result separately before claiming that acceptance check passed.
+最后提出一个简短事实问题，检查回答是否保持简短，不强行套用完整讲解格式。以上是人工验收，不是 PLC 编译、品牌支持或运行时认证；须记录新一轮实际走查结果后才能声称通过。
 
-## 第一阶段维护实现验证
+## 仓库维护回归
 
-治理回归使用 Python 标准库，先设置 `TMPDIR` 到仓库外专用 scratch；运行 `python3 -B -m unittest discover -s evals/tests -v`。测试只在临时 Git 仓库暂存/提交，使用公开 example 域的合成身份；不对本项目执行暂存/提交。覆盖暂存 blob、消息与身份、材料分类、安装/doctor/恢复和真实隔离提交。
+隔离 Git 回归仅在临时仓库中暂存/提交，使用合成内容和公开 example 域的测试身份；不对当前项目执行暂存或提交。将测试临时目录指向仓库外专用 scratch 后运行：
 
-`evals/tests/test_hook_chain.py` 是宿主契约 stub 故障注入。兼容宿主环境下另运行 `python3 -B evals/tests/host_integration.py`，测试现场继承宿主的隔离真实提交与 hook trace，失败不降级为 standalone。无宿主的环境不把此项标为已验证。`scripts/project_policy.py candidates` 无需暂存即可扫描全部未忽略候选。
+```sh
+python3 -B -m unittest discover -s evals/tests -v
+python3 -B scripts/project_policy.py candidates
+```
 
-上述是 A/B/C 实现级验证。详细 RED/GREEN 日志、文件哈希、现场链记录及独立执行正文报告留在仓库外；本轮完成后等待用户检查实际工程树，随后才开始自我审查验收。未执行上文模型 walkthrough、D–G、平台真实发现或 PLC 编译/运行，不将本节测试通过升级为教学验收。
+测试覆盖隐私策略、候选文件扫描、提交格式、局部 hook 配置/诊断/恢复和临时仓库提交。Windows 原生与 POSIX hook 权限、符号链接和宿主委托能力需分开报告；stub 故障注入不是宿主现场实测。
+
+`evals/tests/host_integration.py` 仅在兼容宿主环境运行，用独立仓库验证实际继承的提交链。无兼容宿主时标为未执行，不以 standalone 测试代替。详细的当前平台矩阵和提交前置条件见[维护指南](../docs/maintenance/governance.md)。

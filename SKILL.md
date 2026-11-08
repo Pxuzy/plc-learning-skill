@@ -1,28 +1,35 @@
 ---
-name: plc-program-learning
-description: Use when a user asks to understand, learn from, or review PLC program code, project exports, or control logic.
+name: plc-learning-skill
+description: 分析不同品牌 PLC 工程与复杂程序框架，按用户选择讲解代码并交付初学者可读的 Markdown 手册；当用户要求梳理、解释、学习或审查 PLC、ST 或 Ladder 程序时使用。
 ---
 
-# PLC Program Learning
+# PLC 程序学习
 
-Explain PLC code to learners using the source and evidence actually available. A pasted ST or Ladder excerpt is enough for a useful explanation; vendor adapters, scripts, shell access, and network access are optional and must never block the core explanation.
+依据实际可见的源码和工程证据，帮助初学者理解不同品牌 PLC 及复杂工程框架。用户直接提供 ST 或 Ladder 文本即可开始；普通文本讲解不依赖 Python、shell、网络或厂商解析器。
 
-## Route by request
+## 按请求分流
 
-- A brief factual question gets a brief, source-grounded answer. Do not force a full tutorial, annotated listing, or review section when no code explanation was requested.
-- A code explanation covers the requested readable scope. For detailed teaching, follow [the explanation workflow](references/workflows/explain-code.md) and [the evidence rules](references/common/evidence-and-causality.md).
-- Whole-project structure, vendor-specific project formats, I/O mapping, events, or diagnostics trigger additional evidence gathering. Load the relevant vendor note only when applicable. Vendor folders indicate planned research areas, not supported or verified formats.
-- Skill maintenance and evaluation are not part of ordinary PLC explanation. Use [maintainer checks](evals/README.md) only for this repository.
+- 简单事实问答：直接、简洁地回答。没有代码讲解请求时，不强制套用完整模板、附注源码或展开批判性审查。
+- 模板路由：按[模板目录](templates/index.md)选择输出；它定义导航、详细讲解和多册索引的触发边界。不要把所有模板叠加到每次回答中。
+- 局部代码讲解：限定在用户请求和可读证据范围内；详细讲解使用[局部讲解模板](templates/code-explanation.md)，并读取[讲解流程](references/workflows/explain-code.md)和[证据与因果规则](references/common/evidence-and-causality.md)。完整手册写为独立的 `.md` 文件并返回文件路径或链接；短事实问答保持简短，不套完整模板或强制生成文件。
+- 复杂工程学习导航：当输入跨多个对象、用户尚未指定学习范围，或工程框架需要先拆解时，读取[复杂工程学习导航](references/workflows/project-navigation.md)和[项目导航模板](templates/project-navigation.md)，先盘点并展示可选择的讲解对象，等待用户选择后再进入代码讲解；不要要求用户重复提供长提示词。用户选定范围后，完整手册写为独立的 `.md` 文件并返回文件路径或链接。
+- 完整工程、跨对象调用关系、品牌工程格式、I/O、事件或诊断：先确认品牌、产品线、版本和实际输入，再读取相应厂商资料。没有证据就说明未知，不把厂商目录或扩展名当作支持证明。
+- Skill 维护、评测或仓库治理：只在此类任务中读取 `evals/`、`docs/` 和维护工具说明；普通程序讲解不加载维护流程。
 
-## Core requirements
+## 核心要求
 
-- Preserve visible source characters in any reproduced listing. Do not silently fix, normalize, or replace source with a paraphrase. Keep original comments; put added teaching comments only in a separate copy and prefix each feasible non-empty source line with `AI:`. State every omitted-line exception and why it could not be safely annotated. Never write the teaching copy back to a PLC project.
-- Explain block responsibility and execution causality: conditions and branch relationships, reads, writes, order visible in the code, resulting state, and what is not written. A line-by-line gloss does not replace block-level explanation.
-- Separate source facts, explicit paper-trace assumptions, inferences, and unknowns. Bound each unknown by naming the missing evidence. Never invent types, callers, execution order beyond visible code, scan timing, device actions, reset paths, author intent, or validation results.
-- For large nested `IF`, `CASE`, or loop structures, first identify the complete outer block and its entry condition; explain inner branches in chunks with enough context; then summarize the full flow and state effects. Preserve complete source coverage and do not imply an unselected branch ran.
-- After a requested code explanation, include a distinct **Critical review** section. Separate confirmed source issues, conditional risks, and questions blocked by missing evidence. If no issue is established, say so without calling the program perfect; state review limits and unperformed validation.
-- Prioritize P0 truthfulness, requested-scope coverage, causal explanation, annotation, readability, critical review, and honest verification. Apply P1 only when triggered (for example, project-wide mapping or vendor-specific behavior). Use P2 teaching methods selectively. P3 repository governance belongs only to maintenance work.
+- 详细讲解必须在模板“源码”章节逐段核对并完整呈现用户请求范围内所有可读源码；不得只摘录关键片段、跳过可读分支，或用省略号、“源码见输入”及摘要替代。源码较长时按完整逻辑边界拆分，覆盖全部请求范围；若受输出长度限制不能一次呈现，按连续部分分批交付，并在未覆盖完前明确标记未完成，不得把部分展示称为完整。后续解释可以用行号锚点引用已展示的源码，避免重复粘贴。用户明确要求仅摘要或无需复制源码时按其范围执行。
+- 忠实保留用户请求范围内的源码字符与原注释。逐行核对源码与讲解，但默认不添加 `AI:` 行内注释。常见条件、直接赋值、闭合符、纯续行和空行通常保留原样；把这些语句换句话说不构成信息增量。只有源码本身和讲解正文都没有表达、但有源码证据支持且适合留在行旁的关键信息，才可加入独立教学副本，并逐条做删除测试：删除后若没有具体且有意义的信息损失，或信息已由源码/正文表达，就删去注释。用户要求源码原样时，不添加注释。绝不把教学副本写回 PLC 工程。
+- 关键变量表按具体变量及其声明/作用域逐项记录，不得把多个变量合并为“混合方向”等汇总项。方向只依据该变量可见的声明或工程对象填写，不从代码读写行为反推；读写者与位置分开列证据。声明不可见时才标“未知”，并说明缺少的证据。
+- 详细讲解按模板固定的五个章节名称与顺序输出；关键变量表放在源码之前，代码块整体讲解保留四个固定字段，形象示例与程序交互分开。
+- 说明代码块的职责和执行因果：条件与分支、可见读取、写入、执行顺序、结果状态，以及本段没有写入什么。逐句转述不能代替整体逻辑解释。
+- 清楚区分源码事实、明确假设下的纸面轨迹、推断和未知。未知要说明缺少什么证据；不得臆造变量类型、调用者、不可见的执行顺序、扫描时序、设备动作、复位路径、作者意图或验证结果。
+- 大型嵌套 `IF`、`CASE` 或循环先界定完整外层结构和进入条件，再带着外层条件分块讲内部逻辑，最后汇总执行路径和状态影响。保持请求范围完整，不暗示未选分支实际执行。
+- 对代码讲解单独给出**批判性审查**：区分源码可证实的问题、依赖条件的平台/需求风险、以及证据不足的问题。没有证实缺陷时，说明审查范围和限制，不称程序完美；列明未执行的验证。
+- 优先满足真实、完整、可读的核心解释。只在触发时展开整体工程关系或厂商查证；补充教学手法按需采用，不得挤占核心解释。
 
-## Progressive disclosure
+## 按需读取
 
-Load [common evidence rules](references/common/evidence-and-causality.md) and [the detailed explanation workflow](references/workflows/explain-code.md) when explaining code in depth. Load vendor material only for the identified platform and only at its stated evidence level. See [vendor coverage](references/vendors/README.md), [standards notes](references/standards/README.md), and [external references](references/external/README.md) for limits. These notes do not establish parser or product support.
+入口只保留路由和关键不变量。按 `templates/index.md` 触发导航、详细讲解及多册索引；导航模板把总览、结构图和用户可选范围合为一份导航输出。深入解释时读取对应工作流与证据规则；短答不加载完整手册、维护流程或全部品牌文档。
+
+`references/vendors/` 是查证资料入口，不表示格式解析或产品支持。Skill 文件格式合规不证明任何平台已经发现或加载本 Skill。静态结构检查、语义审阅、PLC 编译/仿真/Trace/实机验证分别报告，不互相替代。

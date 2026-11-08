@@ -27,6 +27,179 @@ class PolicyTests(unittest.TestCase):
         self.p = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(self.p)
 
+    def test_foundation_checks_chinese_contracts(self):
+        result = run(sys.executable, '-B', ROOT / 'evals/check_foundation.py', cwd=ROOT)
+        output = result.stdout.decode(errors='replace') + result.stderr.decode(errors='replace')
+        self.assertEqual(result.returncode, 0, output)
+
+    def test_foundation_ignores_generated_codegraph_markdown(self):
+        with tempfile.TemporaryDirectory(prefix='plc-foundation-test-') as temporary:
+            fixture = Path(temporary) / ROOT.name
+            result = run('git', 'ls-files', '--', '*.md', cwd=ROOT)
+            self.assertEqual(result.returncode, 0, result.stderr.decode(errors='replace'))
+            tracked_markdown = result.stdout.decode().splitlines()
+
+            for relative in tracked_markdown:
+                source = ROOT / relative
+                if source.is_file():
+                    target = fixture / relative
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(source, target)
+
+            template = fixture / 'templates/code-explanation.md'
+            template.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(ROOT / 'templates/code-explanation.md', template)
+            for name in ('index.md', 'project-navigation.md', 'handbook-index.md'):
+                target = fixture / 'templates' / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(ROOT / 'templates' / name, target)
+            navigation = fixture / 'references/workflows/project-navigation.md'
+            navigation.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(ROOT / 'references/workflows/project-navigation.md', navigation)
+            plan_stub = fixture / 'docs/plans/2026-11-08-plc-skill-requirements-alignment.md'
+            plan_stub.parent.mkdir(parents=True, exist_ok=True)
+            plan_stub.write_text('', encoding='utf-8')
+
+            checker = fixture / 'evals/check_foundation.py'
+            checker.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(ROOT / 'evals/check_foundation.py', checker)
+            validator = fixture / 'scripts/validate_handbook.py'
+            validator.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(ROOT / 'scripts/validate_handbook.py', validator)
+            generated = fixture / '.codegraph/index.md'
+            generated.parent.mkdir(parents=True, exist_ok=True)
+            generated.write_text('[generated](missing-file.md)\n', encoding='utf-8')
+
+            result = run(sys.executable, '-B', checker, cwd=fixture)
+            output = result.stdout.decode(errors='replace') + result.stderr.decode(errors='replace')
+            self.assertEqual(result.returncode, 0, output)
+
+    def test_code_explanation_template_contract(self):
+        template = ROOT / 'templates/code-explanation.md'
+        self.assertTrue(template.is_file(), 'local code explanation template must exist')
+        content = template.read_text(encoding='utf-8')
+        sections = (
+            '## 1. 功能定位与执行条件',
+            '## 2. 源码',
+            '## 3. 代码块整体讲解',
+            '## 4. 形象示例',
+            '## 5. 程序交互与段间交接',
+        )
+        positions = [content.index(section) for section in sections]
+        self.assertEqual(positions, sorted(positions), 'five-part template sections must stay ordered')
+        self.assertIn('| 变量 | 数据类型 | 方向 | 含义 | 谁写谁读 | 证据等级 |', content)
+        for field in ('处理过程', '关键逻辑', '写法好处', '状态变化'):
+            self.assertIn(f'### {field}', content)
+
+    def test_project_navigation_template_contract(self):
+        template = ROOT / 'templates/project-navigation.md'
+        self.assertTrue(template.is_file(), 'project navigation template must exist')
+        content = template.read_text(encoding='utf-8')
+        sections = (
+            '## 1. 输入识别',
+            '## 2. 一页总览',
+            '## 3. 工程结构地图',
+            '## 4. 可选择的讲解对象',
+            '## 5. 等待用户选择',
+            '## 6. 多册手册索引（按需）',
+        )
+        positions = [content.index(section) for section in sections]
+        self.assertEqual(positions, sorted(positions), 'navigation template sections must stay ordered')
+        self.assertIn('| 编号 | 对象/范围 | 可见证据 | 依赖或上下文 | 状态 |', content)
+        for phrase in ('品牌/产品线', '版本线索', '保留工程原有层级', '等待用户选择', '不要提前生成完整手册'):
+            self.assertIn(phrase, content)
+
+    def test_template_index_routes_navigation_explanation_and_bookset(self):
+        index = (ROOT / 'templates/index.md').read_text(encoding='utf-8')
+        for identifier in ('NAV@1.0', 'CODE@1.0', 'BOOKSET@1.0'):
+            self.assertIn(identifier, index)
+        for filename in ('project-navigation.md', 'code-explanation.md', 'handbook-index.md'):
+            self.assertIn(filename, index)
+        self.assertIn('用户已明确指定对象', index)
+        self.assertIn('用户明确要求完整范围', index)
+
+        bookset = (ROOT / 'templates/handbook-index.md').read_text(encoding='utf-8')
+        self.assertIn('| 册号 | 手册文件 | 对象范围 | 覆盖状态 | 来源证据 |', bookset)
+        self.assertIn('跨册关系', bookset)
+        self.assertIn('未知与缺口', bookset)
+
+    def test_annotation_policy_defaults_to_selective_value_add_comments(self):
+        skill = (ROOT / 'SKILL.md').read_text(encoding='utf-8')
+        workflow = (ROOT / 'references/workflows/explain-code.md').read_text(encoding='utf-8')
+        self.assertIn('默认不添加 `AI:` 行内注释', skill)
+        self.assertIn('默认不加 `AI:` 行内注释', workflow)
+        self.assertIn('常见条件判断、直接赋值', workflow)
+        self.assertIn('源码/正文表达', skill)
+        self.assertIn('没有具体且有意义的信息损失', skill)
+
+    def test_variable_evidence_is_recorded_per_declaration(self):
+        skill = (ROOT / 'SKILL.md').read_text(encoding='utf-8')
+        workflow = (ROOT / 'references/workflows/explain-code.md').read_text(encoding='utf-8')
+        evidence = (ROOT / 'references/common/evidence-and-causality.md').read_text(encoding='utf-8')
+        template = (ROOT / 'templates/code-explanation.md').read_text(encoding='utf-8')
+        evals = (ROOT / 'evals/README.md').read_text(encoding='utf-8')
+        for content in (skill, workflow, evidence, template, evals):
+            self.assertIn('具体变量', content)
+            self.assertIn('方向', content)
+            self.assertIn('声明', content)
+            self.assertIn('混合方向', content)
+        self.assertIn('读取/写入角色', workflow)
+        self.assertIn('读写者和位置单独列证据', template)
+
+    def test_detailed_explanation_presents_auditable_source(self):
+        skill = (ROOT / 'SKILL.md').read_text(encoding='utf-8')
+        workflow = (ROOT / 'references/workflows/explain-code.md').read_text(encoding='utf-8')
+        template = (ROOT / 'templates/code-explanation.md').read_text(encoding='utf-8')
+        for content in (skill, workflow, template):
+            self.assertIn('请求范围内所有可读源码', content)
+            self.assertIn('不得只摘录关键片段', content)
+        self.assertIn('固定的五个章节名称与顺序', skill)
+        self.assertIn('形象示例与程序交互分开', skill)
+
+    def test_complex_project_learning_route_is_user_selectable(self):
+        skill = (ROOT / 'SKILL.md').read_text(encoding='utf-8')
+        navigation = ROOT / 'references/workflows/project-navigation.md'
+        self.assertTrue(navigation.is_file(), 'project navigation workflow must exist')
+        workflow = navigation.read_text(encoding='utf-8')
+        for content in (skill, workflow):
+            self.assertIn('先盘点', content)
+            self.assertIn('可选择的讲解对象', content)
+            self.assertIn('等待用户选择', content)
+            self.assertIn('Markdown', content)
+        self.assertIn('project-navigation.md', skill)
+        self.assertIn('templates/index.md', skill)
+
+    def test_detailed_handbook_is_delivered_as_markdown_file(self):
+        skill = (ROOT / 'SKILL.md').read_text(encoding='utf-8')
+        workflow = (ROOT / 'references/workflows/explain-code.md').read_text(encoding='utf-8')
+        navigation = (ROOT / 'references/workflows/project-navigation.md').read_text(encoding='utf-8')
+        for content in (skill, workflow, navigation):
+            self.assertIn('完整手册写为独立的 `.md` 文件', content)
+            self.assertIn('返回文件路径或链接', content)
+        self.assertIn('用户指定路径优先', workflow)
+        self.assertIn('不得覆盖已有文件', workflow)
+        self.assertIn('评测输出留在仓库外隔离目录', workflow)
+
+    def test_requirements_snapshot_uses_selective_annotation_rule(self):
+        requirements = (ROOT / 'docs/requirements.md').read_text(encoding='utf-8')
+        self.assertIn('逐行核对源码与讲解', requirements)
+        self.assertIn('按信息量选择性追加', requirements)
+        self.assertIn('每条候选注释执行删除测试', requirements)
+        self.assertNotIn('尽可能每条非空代码行加简短、准确的 `AI:` 注释', requirements)
+
+    def test_skill_metadata_matches_directory_and_describes_use(self):
+        content = (ROOT / 'SKILL.md').read_text(encoding='utf-8')
+        frontmatter = content.split('---', 2)[1]
+        values = dict(line.split(':', 1) for line in frontmatter.splitlines() if ':' in line)
+        self.assertEqual(values['name'].strip(), ROOT.name)
+        description = values['description'].strip()
+        self.assertLessEqual(len(description), 1024)
+        self.assertIn('解释', description)
+        self.assertIn('当用户', description)
+        self.assertIn('品牌', description)
+        self.assertIn('工程', description)
+        self.assertIn('Markdown', description)
+
     def test_all_types_and_subject_boundary(self):
         for kind in ('feat', 'fix', 'docs', 'refactor', 'chore', 'merge', 'perf',
                      'release', 'revert', 'test', 'build', 'ci', 'style'):
@@ -132,14 +305,20 @@ class GitTests(unittest.TestCase):
         file.write_text(sensitive)
         self.assertEqual(self.policy('staged').returncode, 0)
 
-    def test_sensitive_paths_deletion_and_symlink(self):
+    def test_sensitive_paths_are_rejected(self):
         name = 'gh' + 'p_' + 'R' * 36 + '.md'
         self.stage(name=name)
         result = self.policy('staged')
         self.assertNotEqual(result.returncode, 0)
         self.assertNotIn(name.encode(), result.stdout + result.stderr)
         self.git('rm', '--cached', '--', name)
-        (self.repo / 'link').symlink_to('sample.md')
+
+    def test_symlink_staged_is_rejected(self):
+        link = self.repo / 'link'
+        try:
+            link.symlink_to('sample.md')
+        except (OSError, NotImplementedError):
+            self.skipTest('symbolic links are unavailable in this environment')
         self.git('add', 'link')
         self.assertNotEqual(self.policy('staged').returncode, 0)
 
@@ -159,9 +338,10 @@ class GitTests(unittest.TestCase):
 
     def test_scanner_errors_block(self):
         self.assertNotEqual(self.policy('staged', env=dict(self.env, PATH='')).returncode, 0)
-        result = run('/usr/bin/python3', '-B', POLICY, 'staged', cwd=self.base, env=self.env)
+        result = run(sys.executable, '-B', POLICY, 'staged', cwd=self.base, env=self.env)
         self.assertNotEqual(result.returncode, 0)
 
+    @unittest.skipUnless(os.name == 'posix', 'POSIX shell and executable-bit semantics required')
     def test_install_idempotence_doctor_restore(self):
         before = (self.repo / '.git/config').read_bytes()
         self.install()
@@ -174,6 +354,7 @@ class GitTests(unittest.TestCase):
         self.assertEqual(self.git('config', '--local', '--get', 'user.name').returncode, 1)
         self.assertIn(b'repositoryformatversion', before)
 
+    @unittest.skipUnless(os.name == 'posix', 'POSIX shell and executable-bit semantics required')
     def test_doctor_missing_dependency_permission_config_and_target(self):
         self.install()
         hook = self.repo / '.githooks/pre-commit'
@@ -196,6 +377,7 @@ class GitTests(unittest.TestCase):
         self.assertNotEqual(self.setup('install', '--local-only').returncode, 0)
         self.assertEqual(before, (self.repo / '.git/config').read_bytes())
 
+    @unittest.skipUnless(os.name == 'posix', 'POSIX shell and executable-bit semantics required')
     def test_restore_with_missing_project_hook_preserves_unrelated_settings(self):
         self.install()
         self.git('config', '--local', 'fixture.unrelated', 'keep')
@@ -237,6 +419,24 @@ class GitTests(unittest.TestCase):
         (self.repo / 'untracked.md').write_text('clean text')
         self.assertEqual(self.policy('candidates').returncode, 0)
 
+    def test_candidate_scan_handles_deleted_tracked_files_without_index_changes(self):
+        tracked = self.stage(name='deleted.md')
+        tracked.unlink()
+        before = (self.repo / '.git/index').read_bytes()
+        result = self.policy('candidates')
+        self.assertEqual(result.returncode, 0, result.stderr.decode())
+        self.assertEqual(before, (self.repo / '.git/index').read_bytes())
+
+        protected = self.stage(name='.env')
+        protected.unlink()
+        before = (self.repo / '.git/index').read_bytes()
+        result = self.policy('candidates')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(b'material-path', result.stderr)
+        self.assertNotIn(b'FileNotFoundError', result.stderr)
+        self.assertEqual(before, (self.repo / '.git/index').read_bytes())
+
+    @unittest.skipUnless(os.name == 'posix', 'POSIX shell and executable-bit semantics required')
     def test_real_commits_clean_format_privacy(self):
         self.install()
         self.stage()

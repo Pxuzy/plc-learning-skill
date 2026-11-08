@@ -1,8 +1,11 @@
 """Supported host contract stubs; actual installed host is tested separately."""
 import json
+import os
+import unittest
 import test_governance as base
 
 
+@unittest.skipUnless(os.name == 'posix', 'POSIX shell and executable-bit semantics required')
 class HostChainTests(base.GitTests):
     # Inherit repository fixture helpers, not the unrelated base test cases.
     __unittest_skip__ = False
@@ -65,9 +68,18 @@ if name == 'commit-msg':
         hook.chmod(0o755)
         before = hook.read_bytes()
         self.assertEqual(self.setup('install').returncode, 0)
-        result = base.run('git', 'hook', 'run', '--to-stdin=/dev/stdin', 'pre-push', '--',
-                          'fixture', 'local-target', data=b'payload fixture\n',
-                          cwd=self.repo, env=self.env)
+        self.assertEqual(self.git('config', '--get', 'core.hooksPath').stdout.strip(),
+                         str(host).encode())
+        probe = base.run('git', 'hook', 'run', '--ignore-missing', 'plc-hook-capability-probe',
+                         cwd=self.repo, env=self.env)
+        hook_args = ('fixture', 'local-target')
+        if probe.returncode == 0:
+            result = base.run('git', 'hook', 'run', '--to-stdin=/dev/stdin', 'pre-push', '--',
+                              *hook_args, data=b'payload fixture\n', cwd=self.repo, env=self.env)
+        else:
+            # Older Git lacks `git hook run`; execute the unchanged host script directly.
+            result = base.run(hook, *hook_args, data=b'payload fixture\n',
+                              cwd=self.repo, env=self.env)
         self.assertEqual(result.returncode, 27)
         self.assertEqual((self.repo / 'payload').read_bytes(), b'payload fixture\n')
         self.assertEqual((self.repo / 'arguments').read_text(), 'fixture\nlocal-target\n')

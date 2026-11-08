@@ -1,3 +1,5 @@
-# Delta
+# 台达资料
 
-Status: planned research area; no format or version tested in this foundation. Do not infer Delta project support from this note.
+当前为规划中的厂商资料方向，未验证具体工程格式、产品线或版本，不据此声明解析支持。涉及 ISPSoft、ST、I/O 或诊断时，先确认 PLC 系列、软件/固件版本和实际对象，再查对应官方手册及工程证据。
+
+当前官方资料入口及未核实项见[规范核对页](../../standards/README.md)。下载中心本身不证明某系列的工程解析或 ST 行为已验证。

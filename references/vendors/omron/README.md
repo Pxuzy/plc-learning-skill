@@ -1,3 +1,5 @@
-# Omron
+# 欧姆龙资料
 
-Status: planned research area; no format or version tested in this foundation. Do not infer Omron project support from this note.
+当前为规划中的厂商资料方向，未验证具体工程格式、产品线或版本，不据此声明解析支持。涉及 ST、I/O、事件或 Cross Reference 时，先确认控制器系列、Sysmac Studio 版本和实际工程对象，再查匹配的官方手册与项目证据。
+
+当前资料入口及其使用限制见[规范核对页](../../standards/README.md)。产品规格页不能替代实际工程的符号引用结果。

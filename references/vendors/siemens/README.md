@@ -1,3 +1,5 @@
-# Siemens
+# 西门子资料
 
-Status: planned research area; no format or version tested in this foundation. Do not infer Siemens project support from this note.
+当前为规划中的厂商资料方向，未验证具体工程格式、产品线或版本，不据此声明解析支持。涉及 SCL、I/O、诊断或在线行为时，先识别具体 CPU、STEP 7/TIA Portal 版本和目标对象，再查匹配的官方手册和工程配置。
+
+当前仅有[规范核对页](../../standards/README.md)收录的一项 S7-1500 诊断资料；它只用于诊断来源分类，不验证 SCL 语义、项目结构或其他 CPU 系列。

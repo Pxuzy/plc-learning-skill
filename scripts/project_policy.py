@@ -154,7 +154,10 @@ def candidate_findings():
         label = f'candidate-{number}'
         findings.extend((label, error) for error in path_errors(name))
         path = Path(name)
-        info = path.lstat()
+        try:
+            info = path.lstat()
+        except FileNotFoundError:
+            continue
         if not stat.S_ISREG(info.st_mode):
             findings.append((label, 'non-regular'))
         elif info.st_size > MAX_BYTES:

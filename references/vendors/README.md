@@ -1,8 +1,10 @@
-# Vendor Notes
+# 厂商资料导航
 
-The first research areas are Siemens, Omron, Beckhoff, and Delta. These names are a plan, not a support claim. No vendor format, product line, or version is verified by the presence of this directory. For a vendor-specific question, establish the platform, product line, project format, and version first; use matching project evidence and authoritative documentation. If unavailable, explain the visible code generically and mark platform behavior unknown.
+首批资料调研范围为西门子、欧姆龙、倍福和台达。品牌名称或子目录仅表示资料整理方向，不表示已支持某种工程格式、产品线或版本。开展厂商专项说明前，先确认品牌、产品线、工程格式、软件/固件版本和具体目标对象；以匹配的工程证据及官方资料核实平台行为。缺资料时只解释可见代码，并标明未知。
 
-- [Siemens](siemens/README.md)
-- [Omron](omron/README.md)
-- [Beckhoff](beckhoff/README.md)
-- [Delta](delta/README.md)
+- [西门子](siemens/README.md)
+- [欧姆龙](omron/README.md)
+- [倍福](beckhoff/README.md)
+- [台达](delta/README.md)
+
+当前官方资料入口及适用范围见[规范核对](../standards/README.md)。任何解析/运行支持声明都必须有对应组合的获准样本和实际验证；目录、资料或 `.st` 扩展名本身都不足以证明支持。
