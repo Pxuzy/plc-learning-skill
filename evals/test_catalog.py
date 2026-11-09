@@ -86,7 +86,7 @@ class CatalogTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory(prefix="plc-catalog-")
         root = Path(self.tmp.name) / ROOT.name
         root.mkdir()
-        for directory in ("references", "scripts", "evals"):
+        for directory in ("references", "scripts", "evals", "templates"):
             shutil.copytree(ROOT / directory, root / directory, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
         for name in ("SKILL.md", "LICENSE", "CHANGELOG.md"):
             shutil.copy2(ROOT / name, root / name)

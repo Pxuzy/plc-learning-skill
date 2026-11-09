@@ -440,7 +440,7 @@ def test_multiple_missing_units_are_distinguishable_in_all_reports():
 def test_teaching_semantics_examples_are_evidence_bound_content_contract():
     text = (ROOT / "references/comment-quality.md").read_text(encoding="utf-8")
     for rule in ("已给上下文可用", "不能凭名称补出业务含义", "局部赋值不保证下一扫描", "不能断言机构动作",
-                 "调用条件未知时", "执行行缺解释必须补齐或明确交付未完成"):
+                 "调用条件未知时", "执行行缺注释或低价值仍报错"):
         assert rule in text, rule
     pairs = (
         ("yClampValve := TRUE;", "解除夹紧由段外逻辑负责", "本段不撤销 TRUE，物理解除方式未知"),

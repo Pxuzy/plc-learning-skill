@@ -6,7 +6,8 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-VALIDATOR = ROOT / 'scripts' / 'validate_handbook.py'
+# 旧 --source/--handbook 契约保留在专用兼容校验器；新默认 CLI 的回归见 evals/test_handbook_validator.py。
+VALIDATOR = ROOT / 'scripts' / 'legacy_handbook_validator.py'
 
 SOURCE = '''PROGRAM Demo
 VAR

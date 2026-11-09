@@ -68,7 +68,7 @@ def test_mode_b_preserves_source_without_added_teaching_comments():
     body = selector()
     local = (ROOT / "references/local-code-explanation.md").read_text(encoding="utf-8")
     assert "五部分块级局部讲解模板" in mode_line(body, "B")
-    assert "默认不追加" in local
+    assert "用户明确要原样代码时才只给原码" in local
     assert "原有注释" in local
     assert "代码围栏逐字保留" in local
 

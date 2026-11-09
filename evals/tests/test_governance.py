@@ -42,6 +42,7 @@ class PolicyTests(unittest.TestCase):
             tracked_markdown += [
                 'references/inline-comment-style.md',
                 'references/inline-comment-examples.md',
+                'references/skill-maintenance.md',
             ]
 
             for relative in tracked_markdown:
@@ -135,7 +136,7 @@ class PolicyTests(unittest.TestCase):
         self.assertIn('默认按简洁业务句追加', workflow)
         self.assertIn('风格参考摘要', workflow)
         self.assertIn('长手册分段与续接', workflow)
-        self.assertIn('用户要求源码原样时，不添加注释', skill)
+        self.assertIn('要求原样源码时不添加注释', workflow)
 
     def test_variable_evidence_is_recorded_per_declaration(self):
         skill = (ROOT / 'SKILL.md').read_text(encoding='utf-8')
@@ -143,11 +144,13 @@ class PolicyTests(unittest.TestCase):
         evidence = (ROOT / 'references/common/evidence-and-causality.md').read_text(encoding='utf-8')
         template = (ROOT / 'templates/code-explanation.md').read_text(encoding='utf-8')
         evals = (ROOT / 'evals/README.md').read_text(encoding='utf-8')
-        for content in (skill, workflow, evidence, template, evals):
+        for content in (workflow, evidence, template):
             self.assertIn('具体变量', content)
             self.assertIn('方向', content)
             self.assertIn('声明', content)
             self.assertIn('混合方向', content)
+        self.assertIn('关键变量', skill)
+        self.assertIn('变量证据', evals)
         self.assertIn('读取/写入角色', workflow)
         self.assertIn('读写者和位置单独列证据', template)
 
@@ -155,30 +158,31 @@ class PolicyTests(unittest.TestCase):
         skill = (ROOT / 'SKILL.md').read_text(encoding='utf-8')
         workflow = (ROOT / 'references/workflows/explain-code.md').read_text(encoding='utf-8')
         template = (ROOT / 'templates/code-explanation.md').read_text(encoding='utf-8')
-        for content in (skill, workflow, template):
+        for content in (workflow, template):
             self.assertIn('请求范围内所有可读源码', content)
             self.assertIn('不得只摘录关键片段', content)
-        self.assertIn('固定的五个章节名称与顺序', skill)
-        self.assertIn('形象示例与程序交互分开', skill)
+        self.assertIn('固定的五个章节名称与顺序', workflow)
+        self.assertIn('形象示例与程序交互分开', workflow)
+        self.assertIn('局部讲解模板', skill)
 
     def test_complex_project_learning_route_is_user_selectable(self):
         skill = (ROOT / 'SKILL.md').read_text(encoding='utf-8')
         navigation = ROOT / 'references/workflows/project-navigation.md'
         self.assertTrue(navigation.is_file(), 'project navigation workflow must exist')
         workflow = navigation.read_text(encoding='utf-8')
-        for content in (skill, workflow):
+        for content in (workflow,):
             self.assertIn('先盘点', content)
             self.assertIn('可选择的讲解对象', content)
             self.assertIn('等待用户选择', content)
             self.assertIn('Markdown', content)
-        self.assertIn('project-navigation.md', skill)
-        self.assertIn('templates/index.md', skill)
+        self.assertIn('templates/project-navigation.md', workflow)
+        self.assertIn('templates/index.md', workflow)
 
     def test_detailed_handbook_is_delivered_as_markdown_file(self):
         skill = (ROOT / 'SKILL.md').read_text(encoding='utf-8')
         workflow = (ROOT / 'references/workflows/explain-code.md').read_text(encoding='utf-8')
         navigation = (ROOT / 'references/workflows/project-navigation.md').read_text(encoding='utf-8')
-        for content in (skill, workflow, navigation):
+        for content in (workflow, navigation):
             self.assertIn('完整手册写为独立的 `.md` 文件', content)
             self.assertIn('返回文件路径或链接', content)
         self.assertIn('用户指定路径优先', workflow)
@@ -199,11 +203,9 @@ class PolicyTests(unittest.TestCase):
         self.assertEqual(values['name'].strip(), ROOT.name)
         description = values['description'].strip()
         self.assertLessEqual(len(description), 1024)
-        self.assertIn('解释', description)
-        self.assertIn('当用户', description)
-        self.assertIn('品牌', description)
-        self.assertIn('工程', description)
-        self.assertIn('Markdown', description)
+        self.assertIn('PLC', description)
+        self.assertIn('讲解', description)
+        self.assertIn('分析', description)
 
     def test_all_types_and_subject_boundary(self):
         for kind in ('feat', 'fix', 'docs', 'refactor', 'chore', 'merge', 'perf',
@@ -260,7 +262,7 @@ class GitTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix='plc-test-')
         self.base = Path(self.temp.name)
-        self.repo = self.base / 'repo'
+        self.repo = self.base / ROOT.name
         self.repo.mkdir()
         self.env = {k: v for k, v in os.environ.items()
                     if not k.startswith(('GIT_', 'PLC_'))}
@@ -269,9 +271,15 @@ class GitTests(unittest.TestCase):
                         GIT_AUTHOR_EMAIL=PUBLIC, GIT_COMMITTER_EMAIL=PUBLIC,
                         PYTHONDONTWRITEBYTECODE='1')
         self.git('init', '-q')
-        for part in ('scripts', '.githooks'):
+        # pre-commit now runs strict asset/link validation, so the fixture needs the
+        # skill corpus and maintenance deps, not just scripts/.githooks.
+        for part in ('scripts', '.githooks', 'references', 'templates', 'evals'):
             if (ROOT / part).exists():
-                shutil.copytree(ROOT / part, self.repo / part)
+                shutil.copytree(ROOT / part, self.repo / part,
+                                ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
+        for name in ('SKILL.md', 'LICENSE'):
+            if (ROOT / name).is_file():
+                shutil.copy2(ROOT / name, self.repo / name)
 
     def tearDown(self):
         self.temp.cleanup()

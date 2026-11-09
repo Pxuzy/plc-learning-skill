@@ -5,7 +5,7 @@
 ## 试跑台搭建（每次一个独立目录）
 
 1. `root = scratch/plc-skill-trial-<时间戳>`，里面建 `hermes-home/`，把技能**软链**进 `hermes-home/skills/`（`ln -s <技能目录> ...`），不要复制，保证测的是当前工作树版本。
-2. 从当前进程环境或凭据管理器向隔离试跑台注入提供方凭据；凭据只保存在访问受限的本地环境中，不写入技能、提示词或产物。试跑配置显式指定模型、工具集、回合与时长上限，并关闭记忆和无关插件。
+2. 试跑所需的提供方凭据从当前进程环境或凭据管理器注入，不写入仓库、技能目录或试跑工作区；`hermes-home/config.yaml` 设 `model.provider/default`、`providers.<name>`、`agent.max_turns`、`agent.run_budget_seconds`、`memory.*_enabled: false`、`plugins/mcp_servers` 置空。
 3. 提示词只写一句自然语言 + 源码正文；不给文件路径、不列步骤、不提示模板编号。源码前加一行归档边界（哪几节 `partial`），否则模型会把缺口当已补全。
 4. 调用：
 
