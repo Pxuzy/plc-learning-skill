@@ -1,0 +1,10 @@
+# 全部文本按 LF 存储与检出，避免跨平台换行漂移
+* text=auto eol=lf
+
+# 二进制资产不做换行转换
+*.png binary
+*.jpg binary
+*.zip binary
+
+# 测试夹具中的源码必须逐字节保真
+evals/fixtures/** -text whitespace=trailing-space,space-before-tab,cr-at-eol

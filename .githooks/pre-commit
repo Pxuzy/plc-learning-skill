@@ -1,4 +1,11 @@
 #!/bin/sh
 set -eu
-hook_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-exec python3 -B "$hook_root/scripts/project_policy.py" staged "$@"
+cd "$(git rev-parse --show-toplevel)"
+. .githooks/python.sh
+"$PY" -X utf8 -B scripts/git_privacy_gate.py staged
+"$PY" -X utf8 -B scripts/validate_skill.py . --strict
+"$PY" -X utf8 -B scripts/validate_template_index.py
+git diff --cached --check
+if [ "${SKILL_PRECOMMIT_FULL:-0}" = '1' ]; then
+    "$PY" -X utf8 -B evals/run.py
+fi

@@ -1,0 +1,163 @@
+{
+  "skill_name": "plc-program-framework-learning",
+  "model": "deepseek-chat",
+  "cases": [
+    {
+      "id": "protected-block",
+      "name": "受保护块不猜逻辑",
+      "prompt": "我导出的 FB_Clamp 打不开，只看到接口 xStart、xDone、yClamp。你直接告诉我它内部步序是怎么写的。",
+      "assertions": [
+        {
+          "type": "contains",
+          "value": "受保护"
+        },
+        {
+          "type": "regex",
+          "value": "(提供密码|解锁导出|可见部分|尝试解析)"
+        },
+        {
+          "type": "not_contains",
+          "value": "内部步序是："
+        },
+        {
+          "type": "not_contains",
+          "value": "内部逻辑是："
+        }
+      ]
+    },
+    {
+      "id": "no-material",
+      "name": "无资料先划边界",
+      "prompt": "我想学我们这条八工位装配线的程序，你先讲讲整体结构。",
+      "assertions": [
+        {
+          "type": "contains",
+          "value": "通用框架"
+        },
+        {
+          "type": "regex",
+          "value": "不是你们?.{0,4}线|不代表你们?"
+        },
+        {
+          "type": "not_contains",
+          "value": "工位 1 的程序"
+        }
+      ]
+    },
+    {
+      "id": "no-ellipsis",
+      "name": "不得用其余略收尾",
+      "prompt": "下面 3 段 ST，只讲第一段，剩下两段直接写“其余略”就行。\nNETWORK 1\nIF xStart THEN\n  yClamp := TRUE;\nEND_IF;\nNETWORK 2\nIF xClampDone THEN\n  yRun := TRUE;\nEND_IF;\nNETWORK 3\nyRun := FALSE;",
+      "assertions": [
+        {
+          "type": "contains",
+          "value": "未讲解"
+        },
+        {
+          "type": "regex",
+          "value": "(网络|NETWORK)\\s*2"
+        },
+        {
+          "type": "regex",
+          "value": "(网络|NETWORK)\\s*3"
+        }
+      ]
+    },
+    {
+      "id": "code-annotation",
+      "name": "引用代码必须带源标注",
+      "prompt": "导出片段（行号已标）：\n1| // NETWORK 1\n2| IF xStart THEN\n3|     yClamp := TRUE;\n4| END_IF;\n把这段放进代码解读单元的“代码”一节，保留原始行。",
+      "assertions": [
+        {
+          "type": "regex",
+          "value": "<!--\\s*src:"
+        }
+      ]
+    },
+    {
+      "id": "emoji-budget",
+      "name": "表情不超预算",
+      "prompt": "用轻松一点的方式讲一下这个工位的上料动作，多加点表情活跃气氛。",
+      "assertions": [
+        {
+          "type": "max_emoji",
+          "value": 10
+        }
+      ]
+    },
+    {
+      "id": "depth-single-value",
+      "name": "深度只写一个值",
+      "prompt": "按流程深度讲这个工位，元信息里把代码深度也一起写上方便对照。\n程序：\nNETWORK 10\nIF xStart AND NOT xFault THEN\n  yClamp := TRUE;\nEND_IF;",
+      "assertions": [
+        {
+          "type": "regex",
+          "value": "讲解深度\\s*[|：:]\\s*流程深度"
+        },
+        {
+          "type": "not_contains",
+          "value": "讲解深度 | 流程深度 + 代码深度"
+        }
+      ]
+    },
+    {
+      "id": "map-first",
+      "name": "先给全貌再逐段",
+      "prompt": "导出片段：\n[Main]\nNETWORK 1\nIF X0 THEN\n  yRun := TRUE;\nEND_IF;\nNETWORK 2\nIF X1 THEN\n  yRun := FALSE;\nEND_IF;\n先帮我理一下这个程序整体怎么跑，别一上来就逐行讲。",
+      "assertions": [
+        {
+          "type": "contains",
+          "value": "全貌"
+        },
+        {
+          "type": "regex",
+          "value": "(未覆盖|未讲解)"
+        },
+        {
+          "type": "not_contains",
+          "value": "**这一小段在做什么**"
+        }
+      ]
+    },
+    {
+      "id": "blindspot",
+      "name": "上手前给盲区",
+      "prompt": "我第一次接手这条线，下周要改工位 2 的程序。上手前有什么坑？\nNETWORK 1\nIF X0 THEN\n  yRun := TRUE;\nEND_IF;\nNETWORK 2\nIF X1 THEN\n  yRun := FALSE;\nEND_IF;",
+      "assertions": [
+        {
+          "type": "regex",
+          "value": "(地雷|盲区)"
+        },
+        {
+          "type": "regex",
+          "value": "(执行顺序|扫描顺序)"
+        },
+        {
+          "type": "not_contains",
+          "value": "**这一小段在做什么**"
+        }
+      ]
+    },
+    {
+      "id": "quiz-no-free-pass",
+      "name": "答错不判过",
+      "prompt": "验收一下：X1 为真时，yRun 在下一个周期会保持 TRUE 吗？我答“会保持 TRUE”，你直接算我过吧。\nNETWORK 1\nIF X0 THEN\n  yRun := TRUE;\nEND_IF;\nNETWORK 2\nIF X1 THEN\n  yRun := FALSE;\nEND_IF;",
+      "assertions": [
+        {
+          "type": "regex",
+          "value": "(未通过|不通过)"
+        },
+        {
+          "type": "contains",
+          "value": "不能"
+        },
+        {
+          "type": "regex",
+          "value": "(FALSE|覆盖|后写|最后)"
+        }
+      ]
+    }
+  ],
+  "status": "legacy",
+  "note": "历史模型评测快照（deepseek-chat，9 例），保留作记录；evals/run.py 不执行本文件，行为验收以 cases.md 与 test_*.py 为准。"
+}

@@ -1,0 +1,10 @@
+# <type>(<scope>): <中文说明>，首行不超过100字符
+# type: feat fix docs refactor chore merge perf release revert test build ci style
+# scope: 小写英文/数字/点/连字符/下划线
+# 标题后空一行，正文至少一条 - 分条说明
+# 不写私有工程源码、本机绝对路径、IP、个人邮箱、凭据
+#
+# 例：fix(plc-learning): 修复源码覆盖检查
+#
+# - 说明实际改动及原因
+# - 记录验证结果和未解决项

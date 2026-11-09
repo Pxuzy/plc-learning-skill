@@ -1,3 +1,16 @@
-# External References
+# 外部 Skill 案例调研
 
-No external Skill or vendor document is incorporated as evidence in this foundation. When research is added, record its public source, applicable product/version, the narrow claim it supports, and whether the claim was checked against an actual project artifact. Do not copy third-party Skill text or treat community examples as vendor authority.
+查阅日期：2026-11-08。这里只记录研发阶段筛选结果，不供日常 PLC 讲解加载。外部 Skill/社区案例用于比较信息组织和工作流设计，不作为厂商行为的权威来源；不复制其代码、提示词或私有工程资料。
+
+| 候选案例 | 观察到的做法 | 对本项目的价值 | 取舍与限制 |
+|---|---|---|---|
+| [MIGO-OvO/plc-skill](https://github.com/MIGO-OvO/plc-skill) | 已查看仓库 README 与架构指南：通用 PLC 层、品牌层、模板/评测/维护资料分开，并明确不同品牌支持深度有差异。 | 可借鉴按问题触发品牌参考、渐进读取和显式能力边界。 | 社区 Skill，不是厂商资料；目标包含编程生成和工程操作，与本项目证据型初学者解释不同。只采用经需求核对的组织原则，不复制品牌结论或实现。 |
+| [Lance0901/AI-TwinCAT-Skill](https://github.com/Lance0901/AI-TwinCAT-Skill) | 已查看 README：把 Codex Skill、用户级 `AGENTS.md`、PowerShell 模块和 TwinCAT IDE/ADS 操作作为一套方案，并披露构建、部署、变量读写及测试能力。 | 可借鉴明确呈现平台前置条件、工具依赖和操作副作用；同时验证 Skill 与 `AGENTS.md` 各有不同职责。 | 社区自动化项目，不是只读源码教学。其安装、工程修改、在线写入和部署能力均不进入本 Skill；不据 README 推导本项目的解析能力或安全适用性。 |
+
+## 融合决定
+
+- 采用：短入口 + 按需加载、通用证据规则与品牌资料分离、逐组合声明能力等级。
+- 采用：对需平台工具/工程操作的工作流，显式说明运行条件、外部依赖及副作用边界。
+- 不采用：把厂商 IDE/工程自动化工具作为普通解释依赖；复制第三方长段文本、代码、示例工程或未经验证的产品/版本结论。
+- 验证：当前文档/目录结构只能证明设计安排；行为效果、Codex 发现/加载以及品牌工程解析均须各自实测。
+- 后续调研只在新缺口明确且会改变实现决策时扩展；不以堆叠链接代替有效取舍。

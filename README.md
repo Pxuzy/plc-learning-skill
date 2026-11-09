@@ -1,39 +1,70 @@
-# PLC 程序学习 Skill
+# plc-program-framework-learning
 
-面向初学者，以可见源码和工程证据讲解 PLC 程序。直接提供 ST 或 Ladder 文本即可使用；普通讲解不依赖 Python、shell、网络或厂商解析器。运行入口是 [SKILL.md](SKILL.md)，四品牌目前均为规划目标。
+面向真实 PLC 工程的讲解技能：把给定的 ST/LAD 源码拆解成可核对、可复习的学习材料——讲清条件、执行顺序、状态变化与模块交接，保留源码原样，标出证据边界。
 
-当前仅完成第一阶段 A/B/C 的准备实现；先由用户检查实际工程树，再开展后续自我审查验收。尚无项目提交，不代表教学效果、平台加载、PLC 编译或运行通过。完整路线见[开发计划](docs/plans/development-plan.md)，规范目标见[需求快照](docs/requirements.md)。
+本仓库既是技能本体，也是它的版本管理记录。
 
-## 使用与安装
+## 目录
 
-阅读入口及其按需引用即可解释文本。平台安装时应将运行资料放入名为 `plc-program-learning` 的 Skill 目录；当前开发仓库根目录名与元数据名不同，不能把本仓库根目录自动发现视为已验证。目标平台发现与加载仍待专项测试，参见[官方规范核对](references/standards/README.md)。本轮不修改已安装 Skill。
+| 路径 | 用途 |
+|---|---|
+| `SKILL.md` | 技能入口：路由、硬约束、交付门槛 |
+| `references/` | 按需加载的规范与模板（手册结构、代码解读、注释质量、工作流等） |
+| `scripts/` | 校验与检查器（结构、模板索引、注释、代码完整性、版式） |
+| `evals/` | 离线回归、合成夹具与人工行为验收清单 |
+| `CHANGELOG.md` | 版本变更记录，与 `SKILL.md` frontmatter 的 `version` 同步 |
+| `.githooks/` | 提交门禁 |
+| `_backup/`、`_preview/`、`.ai/` | 本地工作数据，不进版本库 |
 
-仓库维护门禁需要 Git、Python 3.10+ 和 POSIX shell。先只读诊断，安装时仅写本仓库局部配置，不修改身份或全局设置：
+## 维护流程
 
-```sh
-python3 -B scripts/hooks.py doctor
-python3 -B scripts/hooks.py install
-python3 -B scripts/hooks.py doctor
+改动前先读 `references/workflow.md` 的「技能维护与成果保护」，并按其要求把整份技能复制到目录外备份、逐文件记录 SHA-256。备份不替代提交，提交也不替代备份。
+
+改动后跑四条维护校验（不改 PLC 程序、不覆盖既有夹具）：
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 PYTHONUTF8=1 python -X utf8 -B evals/run.py
+PYTHONDONTWRITEBYTECODE=1 PYTHONUTF8=1 python -X utf8 -B scripts/validate_skill.py . --strict
+PYTHONDONTWRITEBYTECODE=1 PYTHONUTF8=1 python -X utf8 -B scripts/validate_template_index.py
+git diff --check
 ```
 
-`install` 针对已核对的宿主委托契约；其他宿主拒绝覆盖。无宿主的新环境才可显式使用 `install --local-only`。依赖、恢复、隐私边界与首次提交前置条件统一见[维护指南](docs/maintenance/governance.md)。此安装仅安装维护钩子，不是 Skill 平台安装器。
+Windows 上必须显式用 UTF-8 运行，否则默认代码页会让中文与表情样例读写报编码错，看起来像测试失败。
 
-## 维护验证
+已知基线失败不属于本轮回归：`test_catalog.py` 与 `test_first_principles_contract.py` 的符号链接用例报 `WinError 1314`（当前账户没有创建符号链接的特权），其余数项为样例与校验器契约不一致。报告时必须把环境限制、既有问题与本轮改动分开写，不能合并成「全部通过」。
 
-维护测试临时文件需在调用者指定的仓库外 scratch 目录生成，先设置 `TMPDIR` 指向该目录；不要使用版本目录存日志。
+## Git 约定
 
-```sh
-python3 -B -m unittest discover -s evals/tests -v
-python3 -B evals/check_foundation.py
-python3 -B scripts/project_policy.py candidates
+- 主干分支 `main`，只做本地提交；推送、打标签、发布需要当前任务的明确授权。
+- 换行统一 LF，`.gitattributes` 对 `evals/fixtures/` 关闭文本转换，保证夹具逐字节保真；换行漂移按缺陷处理。
+- 一个提交只承载一类变化：规则与其配套模板、样例、测试同属一次；测试输出、压缩包、审计日志不进提交。
+- 提交前用 `git status` 与 `git diff --staged` 核对范围，提交后核对 `HEAD`、文件清单与工作区干净。
+- 需要回退时用 `git revert` 或从目录外备份恢复；不用 `reset --hard`、`clean -fdx` 或强制推送清理现场。
+
+### 提交标题
+
+```
+<type>(<scope>): <中文说明>
 ```
 
-有兼容宿主时另运行 `python3 -B evals/tests/host_integration.py`，以隔离仓库验证实际链和真实提交。[评测说明](evals/README.md)区分上述实现检查与待开展的教学验收。
+`type` 取 `feat` `fix` `docs` `refactor` `chore` `merge` `perf` `release` `revert` `test` `build`（兼容既有 `ci`、`style`）；scope 只用小写英文/数字/点/连字符/下划线。标题含中文且不超过 100 字符，空行后至少一条 `- ` 分条正文。`.githooks/commit-msg` 同时检查消息隐私。
 
-## 资料导航
+### 钩子
 
-- [运行与维护边界](docs/architecture/boundaries.md)、[需求追溯](docs/architecture/traceability.md)
-- [宿主委托选择](docs/decisions/001-hook-chain.md)、[唯一门禁操作说明](docs/maintenance/governance.md)
-- [通用证据规则](references/common/evidence-and-causality.md)、[讲解流程](references/workflows/explain-code.md)、[品牌状态](references/vendors/README.md)
+新克隆须在仓库根目录执行 `git config core.hooksPath .githooks` 和 `git config commit.template .gitmessage`；钩子不会随 clone 自动启用：
 
-尚未选择或声明项目许可证；公开分发前需确认许可，不因引用官方资料而获得其原文再分发权。
+- `pre-commit`：扫描整个真实暂存树，拒绝私有标识/源码哈希指纹、凭据、IP、本机绝对路径、个人邮箱、二进制和本地产物；再跑严格结构、模板索引和暂存区空白检查。`git add -f` 不能豁免隐私检查。完整回归按需用 `SKILL_PRECOMMIT_FULL=1 git commit ...`。
+- `commit-msg`：校验英文 type、小写 scope、中文标题、空行及分条正文，并扫描消息隐私。
+- `pre-push`：扫描拟推引用的全部祖先与消息，已提交后删除的隐私也阻断；禁止删除远端引用、非快进及移动已有远端标签。
+
+钩子会挑一个可用的 Python 3.9+；Windows 上 `python3` 常被应用商店存根占用并静默返回失败，因此不能只凭命令存在就采用。隐私门禁失败必须先修复，不得用 `--no-verify`、更换 hooksPath 或修改策略绕过。首次推送前跑 `python3 -B scripts/git_privacy_gate.py audit`，扫描包括不可达对象的本地对象库。策略只保存不可逆哈希，不存私有源码。
+
+本地钩子无法阻止有权限者主动绕过；接入远端后须另设分支/标签保护与 CI 同等检查。只有明确授权才推送、打标签或发布。
+
+### 版本
+
+`SKILL.md` 的 `version` 与 `CHANGELOG.md` 顶部条目同名。一次行为或规则变化对应一个小版本；只改错别字与措辞不改版本。
+
+## 边界
+
+这是只读的学习与分析技能：不改 PLC 程序、不下载、不强制 I/O、不旁路保护、不替代实机验证。资料不足时明确标成未知或假设，不补造调用关系、工艺意图与运行结果。

@@ -1,22 +1,26 @@
-# Evidence and Causality
+# 证据与执行因果
 
-## Evidence labels
+## 证据类别
 
-- **Source fact:** directly visible in the supplied code or verified project artifact. Point to the line, object, declaration, or file when available.
-- **Paper trace:** a conditional walkthrough using explicit starting values and assumptions. It is not a runtime result.
-- **Inference:** a plausible interpretation not established by source. Name the evidence that would confirm it.
-- **Unknown:** required evidence is absent or unreadable. State what is missing; do not fill the gap with convention or a variable name.
+- **源码事实：**可直接从用户提供代码或已核对的工程对象看到的内容。能定位时指出行、对象、声明或文件。
+- **纸面轨迹：**在清楚列明初值和假设后，对代码可能路径作条件推演。它不是运行结果。
+- **推断：**源码没有直接证明、但基于现有资料提出的可能解释。说明需要什么证据才能确认。
+- **未知：**必要资料缺失或不可读，说明缺什么。允许结合命名前缀、英文词段、作者注释与实际读写推测用途，并明确标为推断；不得把推测填成已确认的类型、作用域、接口方向、平台语义或现场动作。
 
-Treat a pasted excerpt as evidence only for its visible text. Do not call it a complete project. Comments can explain intent but do not prove runtime behavior. General PLC knowledge may explain syntax, but platform behavior requires matching platform and version evidence.
+粘贴片段只能证明其可见文本，不能证明它是完整工程。注释可以表达意图，但不能单独证明运行行为。通用 PLC 知识可帮助解释语法；平台专属行为需要对应品牌、产品线和版本的证据。
 
-## Explain execution
+## 变量证据
 
-For each relevant block, connect condition or input to reads, branch choice, writes, and resulting state. Distinguish a value written here from a value left unchanged. Explain whether branches are mutually exclusive or independent as shown by the syntax. A later write can replace an earlier write only when the visible execution path establishes that order; cross-object order requires call or task evidence.
+变量表按具体变量及其声明/作用域逐项记录，不把多个变量合并成“混合方向”等汇总项。方向只由该变量对应的可见声明或工程对象证明，不能从代码中的读写方式反推接口方向；读写者、位置和执行条件另列源码证据。声明不可见时标“未知”，并说明缺少的声明、变量表或工程对象。
 
-When the user requests detailed beginner teaching, or state conditions make tracing useful, include a labeled paper trace with concrete initial values and explicit assumptions, each relevant branch decision, resulting writes, and retained values. Never present a paper trace as a runtime outcome, compilation, simulation, trace capture, or hardware validation. Keep short factual answers proportional. If no grounded trace is possible, state which missing values or semantics block it.
+## 解释执行
 
-For pasted Ladder, preserve the visible rung/branch layout and contact, coil, and instruction relationships. Explain paths in represented order; distinguish series and parallel paths and branch joins only when the representation makes them clear. List visible reads/conditions and writes/effects. Cropped, flattened, or ambiguous layout and vendor-specific instruction semantics remain unknown; do not reconstruct an unseen IDE/network or assign platform-specific meanings without matching evidence. Name the missing view, connection, instruction definition, or platform/version evidence needed to resolve an unknown.
+对相关代码块，连起条件/输入、读取、分支选择、写入和结果状态；区分本段写入的值与未被改动的值。只在可见执行路径能证明先后时，才能说后续写入覆盖先前值；跨对象顺序需要调用或任务证据。
 
-## Scope and review
+用户要求初学者深讲，或状态条件使轨迹有帮助时，提供带标签的纸面轨迹，列出具体初值、明确假设、相关分支、结果写入和保留值。不得把纸面推演说成运行、编译、仿真、Trace 或硬件结果。短答保持与问题相称。无法进行有依据的推演时，指出阻断它的缺失值或语义。
 
-Name the source and range covered when known, and list material missing from the request. Review only claims supported by the visible code or cited evidence. Separate confirmed defects from risks conditional on requirements/platform behavior and questions requiring more evidence. Consider branch overlap, overwrite order, hold/clear behavior, bounds, fault paths, timing assumptions, diagnostics, and safety context when relevant. Do not certify safety.
+对于粘贴的 Ladder，保留图面所示梯级/分支布局及接点、线圈和指令的关系。按表示顺序说明路径；仅当图面明确时才区分串联、并联和分支汇合，并列出可见的条件读取及输出效果。裁切、扁平化、关系不清或厂商指令语义不明时，不猜测 IDE 网络或平台行为；说明需要哪种视图、连接、指令定义或品牌/版本资料来解决未知。
+
+## 范围与审查
+
+说明已覆盖的源码范围及已知来源，并列出请求中缺失的资料。审查只针对代码或引用证据支持的说法。将已证实缺陷、依赖条件的风险和待补证问题分开；相关时检查分支重叠、覆盖顺序、保持/清除行为、边界、故障路径、时序假设、诊断和安全上下文。不得作安全认证。

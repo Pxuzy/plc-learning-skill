@@ -1,14 +1,31 @@
-# Explain Code Workflow
+# 代码讲解流程
 
-Use this workflow for detailed explanations, especially when teaching a beginner.
+本流程适用于详细讲解，尤其是面向初学者的讲解。按任务规模省略不适用步骤；短事实问答保持简短。
 
-1. **Set the boundary.** Identify whether input is pasted text, an excerpt, or a project artifact. Say what is readable and what context is absent. Do not imply project-wide coverage from a snippet.
-2. **Map the block.** State the block's visible responsibility, entry conditions, relevant inputs/state, and known relationship to surrounding code. If those are not shown, label them unknown.
-3. **Preserve and annotate.** Present a teaching copy that keeps every visible source character and original comment. Add short `AI:` line comments to each feasible non-empty source line, including control and closing lines. Keep source and added comments distinguishable. If language syntax, formatting, or readability prevents an annotation, name the omitted lines and reason. The copy is explanatory, not guaranteed executable.
-4. **Explain Ladder as represented.** For pasted Ladder, preserve the visible rung and branch layout and the shown contact, coil, and instruction relationships in any teaching copy. Explain condition paths in represented order; distinguish series paths, parallel paths, and branch joins only when they are visibly clear. For each rung, identify visible reads/conditions and writes/effects, including values not written when that is supported by the representation. Treat cropped, flattened, or ambiguous layouts and vendor-specific instruction semantics as unknown. Do not reconstruct an unseen IDE/network or import a vendor-specific meaning without evidence. Say what missing view, connection, instruction definition, or matching platform/version evidence would resolve the unknown.
-5. **Chunk nested code without losing it.** For a large nested `IF`, `CASE`, or loop, first describe the complete outer construct, its condition, and boundaries. Then explain inner logical chunks with their enclosing condition and relevant context. Finish with the whole execution order, branch relationships, reads, writes, and state changes. Maintain a coverage checklist against the original; do not use ellipses to hide omitted code.
-6. **Teach causality.** Explain what each block accomplishes based on its visible behavior, not presumed author intent. When the user requests detailed beginner teaching, or state conditions make tracing useful, include a labeled paper trace with concrete initial values and explicit assumptions, each relevant branch decision, resulting writes, and retained values. Never present it as a runtime outcome. If no grounded trace is possible, state which missing values or semantics block it. Keep short factual answers proportional. Define unfamiliar terms briefly.
-7. **Review separately.** Add **Critical review** after the explanation. List confirmed source problems, conditional risks, and unresolved questions separately, with locations, triggers, likely impact, confidence, and needed evidence where applicable. If none is confirmed, state that the material revealed no confirmed issue and name review limits.
-8. **Report verification honestly.** Say whether any checker, compiler, simulation, trace, or hardware test was actually run. A format or coverage check is not semantic validation.
+**篇幅与去重：**按局部模板的“写作提示词”默认简明讲清；各栏目分工，不反复讲同一结论。分析时仍核对全部条件、读写和证据，成品只呈现理解本段必需的解释；完整源码、五部分、六列变量表、四字段和验证边界不减。
 
-For short factual questions, use only the steps proportional to the question; do not force annotated code or a full review when not applicable.
+需要生成结构化局部讲解时，使用[局部讲解模板](../../templates/code-explanation.md)。按模板固定的五个章节名称与顺序输出；关键变量表放在源码之前，整体讲解保留四个字段，形象示例与程序交互分开。模板负责呈现，以下规则负责分析；不能为了填满模板而补造未知事实。
+
+**变量证据：**关键变量表每行对应一个具体变量及其声明/作用域，不把不同变量合并成“混合方向”。方向只依据该变量可见的声明或工程对象；程序中的读取/写入角色另行记录，不能据此反推接口方向。声明不可见时才标为未知，并写明缺少的声明、变量表或工程对象。
+
+**注释默认值：**每次写注释前加载业务短句规则及自造示例（含命名辅助推断），默认按简洁业务句追加 ` // AI: `；准确说明保存、发送、清除即有价值，同类行可同句式。用户要求原样源码时不追加；空白和纯注释行不补，范围与密度按用户要求。
+
+## 长手册分段与续接
+
+- 每个逻辑单元都使用 `templates/code-explanation.md` 的简约五部分与六列变量表，整体讲解保留四字段、示例、交接、批判性审查和验证状态；同一结论不在多栏重复解释。导航叠加在外层，原栏目不删。
+- 先清点请求范围所有可读代码，按章→功能模块→逻辑单元固定编号与来源范围，章与模块两级目录链接实际锚点。不按字数硬切 IF/CASE/循环；分析保留完整父结构，只输出当前小单元；超长闭合父结构完整保留一次，以锚点解释子段而不重复源码。
+- 每次写注释前加载风格规则和自造示例；独立模型请求携带模板正文、风格参考摘要、命名推断方法与匹配案例，恢复或上下文压缩后重载。标记推断，声明未知不补类型和作用域。
+- 每单元接收后落盘，状态记录源范围、源码/模板/参考摘要、已完成和未完成编号、下一起点及校验状态。续接先核对摘要，已接收单元不重写；来源或规则变化则保留旧结果，登记重生成范围，不能混合版本。完整范围已获授权时连续推进，不逐段等确认；用户要求暂停或逐批审阅时遵从。
+- 最后按清单稳定顺序合并一份 Markdown，核对目录锚点、编号、范围无漏无重，剥离仅本轮 AI 尾注后与原码逐字符对账。源码覆盖、栏目结构与教学语义分别统计；语义默认待审，模型自报不算通过。输入缺口保留，不补造源码；最终交付手册及剩余缺口。
+
+## 单元执行步骤
+
+1. **界定范围。**说明输入是粘贴文本、代码片段还是工程文件；指出可读范围和缺失上下文。不要把片段讲解说成完整工程审查。
+2. **定位代码块。**用一句话说明代码块可见的职责、进入条件、相关输入/状态以及已知上下游关系。证据未显示的内容标为未知。
+3. **保真并选择性注释。**在模板“源码”章节逐段核对并完整呈现用户请求范围内所有可读源码；不得只摘录关键片段、跳过可读分支或用省略号、摘要替代。长源码按完整逻辑边界拆成可核对片段并覆盖全部请求范围，后续讲解可用行号锚点引用已展示片段，避免重复粘贴。若受输出长度限制不能一次呈现，按连续部分分批交付，并在未覆盖完前明确标记未完成，不得把部分展示称为完整。逐行核对教学副本与讲解；每次写注释前加载 `../inline-comment-style.md`（含命名辅助推断）和 `../inline-comment-examples.md`，默认按业务短句追加 ` // AI: `。准确说明保存、发送、清除即有价值，同类行可同句式，不强求正文之外的新信息；范围和密度按用户要求，空白及纯注释行不补。命名只辅助用途推断，声明确认类型和作用域；恢复或压缩后按风格规则重载参考。保留 Ladder 图示布局；注释不得遮挡接点、分支或线圈关系。用户明确要求仅摘要或无需复制源码时按其范围执行；要求原样源码时不添加注释。教学副本不保证可执行，也不写回 PLC 工程。
+4. **按可见关系解释 Ladder。**在保留输入中可见的梯级、分支布局及接点/线圈/指令关系后，按图面顺序解释条件路径。只有关系清楚时才称为串联路径、并联路径或分支汇合。说明可见的条件读取与输出/效果；裁切、扁平化或歧义布局，以及厂商专属指令语义，均保持未知。指出需要补充的视图、连线、指令定义或对应平台/版本资料；不重建不可见的 IDE 网络。
+5. **分块但不遗漏嵌套代码。**对于大型 `IF`、`CASE` 或循环，先说明完整外层结构、条件和边界，再结合外层条件解释内部逻辑块，最后汇总执行顺序、分支关系、读写和状态变化。将讲解范围与原始代码逐项核对；不得用省略号隐藏用户要求覆盖的代码。
+6. **解释因果。**以可见行为说明代码块作用，不臆测作者意图。用户要求新手深讲、或状态条件使轨迹有帮助时，给出明确标注的纸面轨迹：具体初始值和假设、相关分支判断、发生的写入及保留值。纸面轨迹不是运行结果。不能建立有依据的轨迹时，说明被哪些缺失数值或语义阻断。首次出现的陌生术语简要解释。
+7. **单独审查。**讲解后附**批判性审查**。分别列出有证据的位置和行为的已证实问题、依赖需求或平台条件的风险、尚待补证的问题；适用时给出触发条件、可能影响和置信边界。若没有证实问题，说明审查范围和限制。
+8. **如实报告验证。**说明是否实际运行了检查器、PLC 编译器、仿真、Trace 或硬件测试。格式/覆盖检查不是语义验证。
+9. **交付 Markdown 文件。**完整手册写为独立的 `.md` 文件，返回文件路径或链接。用户指定路径优先；否则写入当前工作区合适的输出位置，不得覆盖已有文件。评测输出留在仓库外隔离目录，不复制到仓库、Skill 或评测记录。仅在当前环境无法创建文件时，才在回复中提供完整 Markdown，并明确说明未生成文件。

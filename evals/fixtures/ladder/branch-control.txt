@@ -1,6 +1,0 @@
-Rung 1:
-  --[ Enable ]--+--[ AutoMode ]--+--( FeedValve )
-                +--[ ManualMode ]+
-Rung 2:
-  --[ Enable ]--+--[ FeedValve ]--+--( Indicator )
-                +--[ Alarm ]------+
