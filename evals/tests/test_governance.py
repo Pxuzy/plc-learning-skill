@@ -38,6 +38,11 @@ class PolicyTests(unittest.TestCase):
             result = run('git', 'ls-files', '--', '*.md', cwd=ROOT)
             self.assertEqual(result.returncode, 0, result.stderr.decode(errors='replace'))
             tracked_markdown = result.stdout.decode().splitlines()
+            # Approved reference additions must be checked before they are staged.
+            tracked_markdown += [
+                'references/inline-comment-style.md',
+                'references/inline-comment-examples.md',
+            ]
 
             for relative in tracked_markdown:
                 source = ROOT / relative
@@ -126,11 +131,11 @@ class PolicyTests(unittest.TestCase):
     def test_annotation_policy_defaults_to_selective_value_add_comments(self):
         skill = (ROOT / 'SKILL.md').read_text(encoding='utf-8')
         workflow = (ROOT / 'references/workflows/explain-code.md').read_text(encoding='utf-8')
-        self.assertIn('默认不添加 `AI:` 行内注释', skill)
-        self.assertIn('默认不加 `AI:` 行内注释', workflow)
-        self.assertIn('常见条件判断、直接赋值', workflow)
-        self.assertIn('源码/正文表达', skill)
-        self.assertIn('没有具体且有意义的信息损失', skill)
+        self.assertIn('注释前置参考', skill)
+        self.assertIn('默认按简洁业务句追加', workflow)
+        self.assertIn('风格参考摘要', workflow)
+        self.assertIn('长手册分段与续接', workflow)
+        self.assertIn('用户要求源码原样时，不添加注释', skill)
 
     def test_variable_evidence_is_recorded_per_declaration(self):
         skill = (ROOT / 'SKILL.md').read_text(encoding='utf-8')
