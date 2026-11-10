@@ -86,7 +86,7 @@ class CatalogTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory(prefix="plc-catalog-")
         root = Path(self.tmp.name) / ROOT.name
         root.mkdir()
-        for directory in ("references", "scripts", "evals", "templates"):
+        for directory in ("references", "scripts", "evals", "templates", "assets"):
             shutil.copytree(ROOT / directory, root / directory, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
         for name in ("SKILL.md", "LICENSE", "CHANGELOG.md"):
             shutil.copy2(ROOT / name, root / name)
@@ -127,7 +127,7 @@ class CatalogTests(unittest.TestCase):
 
     def test_catalog_unknown_directory_rows_are_not_silently_ignored(self):
         root = self.fixture()
-        (root / "assets").mkdir()
+        (root / "assets").mkdir(exist_ok=True)
         (root / "assets/x.md").write_text("# 错误目录中的真实文件\n", encoding="utf-8")
         path = root / CATALOG
         path.write_text(path.read_text(encoding="utf-8") +

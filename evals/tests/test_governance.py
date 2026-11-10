@@ -146,7 +146,8 @@ class PolicyTests(unittest.TestCase):
                       'BOOKSET must resolve to one authoritative body')
 
         bookset = (ROOT / 'templates/handbook-index.md').read_text(encoding='utf-8')
-        self.assertIn('| 册号 | 手册文件 | 对象范围 | 覆盖状态 | 来源证据 |', bookset)
+        self.assertIn('| 册号 | 手册文件 | 对象范围 | 类型 | 段数 | 覆盖状态 | 来源证据 |', bookset)
+        self.assertIn('| 可见时机 | 影响/后果 |', bookset)
         self.assertIn('跨册关系', bookset)
         self.assertIn('未知与缺口', bookset)
         self.assertIn('<!-- template-compat: BOOKSET@1.0 -> references/template-handbook-index.md -->', bookset,
@@ -302,7 +303,7 @@ class GitTests(unittest.TestCase):
         self.git('init', '-q')
         # pre-commit now runs strict asset/link validation, so the fixture needs the
         # skill corpus and maintenance deps, not just scripts/.githooks.
-        for part in ('scripts', '.githooks', 'references', 'templates', 'evals'):
+        for part in ('scripts', '.githooks', 'references', 'templates', 'evals', 'assets'):
             if (ROOT / part).exists():
                 shutil.copytree(ROOT / part, self.repo / part,
                                 ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))

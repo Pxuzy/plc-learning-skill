@@ -20,18 +20,19 @@
 
 改动前先读 `references/workflow.md` 的「技能维护与成果保护」，并按其要求把整份技能复制到目录外备份、逐文件记录 SHA-256。备份不替代提交，提交也不替代备份。
 
-改动后跑四条维护校验（不改 PLC 程序、不覆盖既有夹具）：
+改动后跑五条维护校验（不改 PLC 程序、不覆盖既有夹具）：
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 PYTHONUTF8=1 python -X utf8 -B evals/run.py
 PYTHONDONTWRITEBYTECODE=1 PYTHONUTF8=1 python -X utf8 -B scripts/validate_skill.py . --strict
 PYTHONDONTWRITEBYTECODE=1 PYTHONUTF8=1 python -X utf8 -B scripts/validate_template_index.py
+PYTHONDONTWRITEBYTECODE=1 PYTHONUTF8=1 python -X utf8 -B scripts/validate_template_format.py .
 git diff --check
 ```
 
 Windows 上必须显式用 UTF-8 运行，否则默认代码页会让中文与表情样例读写报编码错，看起来像测试失败。
 
-已知基线失败不属于本轮回归：`test_catalog.py` 与 `test_first_principles_contract.py` 的符号链接用例报 `WinError 1314`（当前账户没有创建符号链接的特权），其余数项为样例与校验器契约不一致。报告时必须把环境限制、既有问题与本轮改动分开写，不能合并成「全部通过」。
+回归报告须区分环境限制、可复现的基线失败和改动引入的问题。Windows 账户缺少符号链接权限时，相关用例可能报 `WinError 1314`；应记录实际环境与用例结果，不把某次运行状态写成所有环境的既定失败，也不能把未执行项合并为「全部通过」。
 
 ## Git 约定
 

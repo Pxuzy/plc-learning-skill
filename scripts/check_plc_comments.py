@@ -14,7 +14,7 @@ import re
 from collections import Counter
 from pathlib import Path
 
-from markdown_fences import PLC_LANGS, parse_fences, fence_diagnostics
+from markdown_fences import PLC_LANGS, ST_LANGS, parse_fences, fence_diagnostics
 
 CLOSE = re.compile(
     r"^(?:(?:END_(?:IF|FOR|CASE|WHILE|REPEAT|VAR|FUNCTION_BLOCK|FUNCTION|PROGRAM|"
@@ -140,7 +140,8 @@ def compact(text: str) -> str:
 
 def comment_payload(comment: str) -> str:
     """Check the appended note independently, retaining legacy prefix support."""
-    return comment.rsplit("// 教学补充：", 1)[-1].rsplit(" // ", 1)[-1].strip()
+    payload = comment.rsplit("// 教学补充：", 1)[-1].rsplit(" // ", 1)[-1].strip()
+    return re.sub(r'^AI\s*[:：]\s*', '', payload).strip()
 
 
 def single_action_if(mask: str, units: list[tuple[int, int]]) -> bool:
@@ -255,6 +256,41 @@ def check_text(raw: str) -> dict:
     return {"blocks": checked, "errors": errors}
 
 
+def check_condition_ai(raw: str) -> list[str]:
+    """Check IF/ELSIF/ELSE and multiline condition lines in ST/SCL fences.
+
+    Explicit mode for newly annotated output; legacy author comments remain
+    accepted by check_text. This checks presence and known empty prose only.
+    """
+    errors = []
+    for block in fences(raw):
+        if block['lang'] not in ST_LANGS:
+            continue
+        lines, lexical_errors = lex_lines(block['text'])
+        errors.extend(f"围栏 L{block['line']}: {e}" for e in lexical_errors)
+        in_condition = False
+        for offset, line in enumerate(lines, 1):
+            mask = line['mask']
+            condition = bool(re.search(r'\b(?:IF|ELSIF|ELSE)\b', mask, re.I))
+            required = bool(mask.strip()) and (condition or in_condition)
+            for token in re.findall(r'\b(?:IF|ELSIF|THEN|END_IF)\b', mask, re.I):
+                in_condition = token.upper() in {'IF', 'ELSIF'}
+            if not required:
+                continue
+            code_end = len(mask.rstrip())
+            notes = [note for pos, note in line['comments'] if pos >= code_end
+                     and line['source'][pos:pos+2] == '//'
+                     and re.search(r'(?:^\s*|//\s*)AI: ', note)]
+            label = f"L{block['line'] + offset} 条件判断行"
+            if not notes:
+                errors.append(label + ' 缺少 // AI: 逐行条件注释')
+            else:
+                problem = low_value(notes[-1], line['source'][:code_end])
+                if problem:
+                    errors.append(label + ' ' + problem)
+    return errors
+
+
 def check_every_code_line(raw: str) -> list[str]:
     """Require a meaningful trailing note on every PLC code/closure line.
 
@@ -341,6 +377,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--comment-review", type=Path, help="作者逐块语义审查 JSON；只用于单份文档")
     ap.add_argument("--final", action="store_true", help="要求全部块语义审查完成且没有未解决问题")
     ap.add_argument("--require-every-line", action="store_true", help="要求 PLC 围栏内每条非空代码行（包括纯闭合行）有行内注释")
+    ap.add_argument("--require-condition-ai", action="store_true", help="要求 ST/SCL 的 IF/ELSIF/ELSE 及跨行条件逐行有 // AI: 尾注")
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args(argv)
     if args.comment_review and len(args.documents) != 1:
@@ -354,6 +391,8 @@ def main(argv: list[str] | None = None) -> int:
             reports.append({"path": str(path), "blocks": [], "errors": [str(exc)]})
             continue
         report = check_text(raw)
+        if args.require_condition_ai:
+            report["errors"] += check_condition_ai(raw)
         if args.require_every_line:
             report["errors"] += check_every_code_line(raw)
         report["errors"] += check_review(raw, report["blocks"], args.comment_review, args.final, hashlib.sha256(data).hexdigest())

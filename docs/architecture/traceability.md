@@ -4,11 +4,11 @@
 
 | 优先级与需求 | 权威实现位置 | 机械/行为验证 | 状态与边界 |
 |---|---|---|---|
-| P0 源码范围、保真与事实/推断/未知边界 | `SKILL.md`、`references/common/evidence-and-causality.md`、`references/workflows/explain-code.md`、`templates/code-explanation.md` | 模板/结构回归；完整范围与逐项语义审查 | 最新一轮隔离样稿复评通过；该结论不证明真实品牌工程的全量覆盖；样本与衍生事实不入库 |
+| P0 源码范围、保真与事实/推断/未知边界 | `SKILL.md`、`references/common/evidence-and-causality.md`、`references/workflows/explain-code.md`、`templates/code-explanation.md` | 模板/结构回归；完整范围与逐项语义审查 | 隔离样稿复评已通过；该结论不证明真实品牌工程的全量覆盖；样本与衍生事实不入库 |
 | P0 条件、顺序、读写、未写与状态因果 | `references/common/evidence-and-causality.md` | 合成轨迹；人工 PLC 语义审查 | 当前规则有基础，行为正确性未由结构检查证明 |
-| P0 有信息增量的 `AI:` 注释和逐条删除测试 | `SKILL.md`、`references/workflows/explain-code.md`、`templates/code-explanation.md` | 结构检查只能验证规则存在；人工判断信息价值、源码映射和删除影响 | 机械逐行注释规则已由选择性规则替代；最新一轮隔离样稿复评通过，不代表跨品牌工程支持 |
-| P0 需求范围覆盖、初学者可读和批判审查 | `SKILL.md`、解释工作流、局部讲解模板 | 完整源码呈现、合成/获准输入上的输出审阅 | 规则与模板已落地；最新一轮隔离样稿复评通过；未发现缺陷不等于程序完美 |
-| P0 完整讲解以 `.md` 文件交付并提供位置 | `SKILL.md`、`references/workflows/explain-code.md`、`references/workflows/project-navigation.md`、`templates/index.md`、`templates/handbook-index.md`、`scripts/validate_handbook.py` | 文件交付契约回归；合成手册源码覆盖回归；检查用户路径优先、不覆盖既有文件，隔离评测产物不入仓库 | 交付规则和结构/源码覆盖验证器已通过合成回归；本轮未运行真实 PLC 讲解文件交付 |
+| P0 有信息增量的 `AI:` 注释和逐条删除测试 | `SKILL.md`、`references/workflows/explain-code.md`、`templates/code-explanation.md` | 结构检查只能验证规则存在；人工判断信息价值、源码映射和删除影响 | 机械逐行注释规则已由选择性规则替代；隔离样稿复评已通过，不代表跨品牌工程支持 |
+| P0 需求范围覆盖、初学者可读和批判审查 | `SKILL.md`、解释工作流、局部讲解模板 | 完整源码呈现、合成/获准输入上的输出审阅 | 规则与模板已落地；隔离样稿复评已通过；未发现缺陷不等于程序完美 |
+| P0 完整讲解以 `.md` 文件交付并提供位置 | `SKILL.md`、`references/workflows/explain-code.md`、`references/workflows/project-navigation.md`、`templates/index.md`、`templates/handbook-index.md`、`scripts/validate_handbook.py` | 文件交付契约回归；合成手册源码覆盖回归；检查用户路径优先、不覆盖既有文件，隔离评测产物不入仓库 | 交付规则和结构/源码覆盖验证器已通过合成回归；尚未运行真实 PLC 讲解文件交付 |
 | P0 验证诚实与隐私隔离 | `evals/README.md`、维护规范 | 文件候选扫描、输出审阅、隔离边界核验 | 私有最终测试输入及衍生材料不入仓库；样本语义结论仅在隔离评测时确认 |
 | P1 整体调用、状态及跨对象关系 | `references/workflows/`、对应 `references/vendors/` | 获准工程证据上的逐跳核验 | 只在用户要求或任务跨对象时触发；纯文本片段不声称全工程覆盖 |
 | P1 复杂工程学习导航与用户选择 | `SKILL.md`、`references/workflows/project-navigation.md`、`templates/index.md`、`templates/project-navigation.md`、`templates/handbook-index.md` | 导航与模板结构回归通过；真实工程上的对象盘点与用户选择验收 | 已验证流程入口、可选对象、等待选择、多册索引与 Markdown 交付规则存在；真实品牌工程结构识别和端到端选择行为仍未验证 |

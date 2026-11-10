@@ -48,15 +48,15 @@ Git 或扫描器异常时失败关闭。项目门禁输出只含风险类别和�
 | 环境/能力 | 结果 | 边界 |
 |---|---|---|
 | Linux 本机 `evals/tests` 回归 | 36 项全部通过 | 含 strict 资产/链接校验、临时仓库真实提交、stub 宿主委托与 CLI 兼容校验器；未验证 Windows 与用户实际继承的宿主链 |
-| Windows 原生 Python/Git 回归 | 未重跑（上一轮 28 项中 20 项通过） | 上一轮矩阵不适用于当前 36 项；7 项 POSIX hook 测试和 1 项符号链接测试跳过 |
-| WSL Ubuntu 22.04 隔离回归 | 未重跑（上一轮 28 项通过） | 上一轮结果保留作历史，不与本轮 Linux 结果合并成“全平台通过” |
-| 符号链接 staged-path 回归 | Linux 回归通过；上一轮 Windows 跳过 | Linux 结果不替代 Windows 权限能力验证 |
+| Windows 原生 Python/Git 回归 | 未重跑（此前的 28 项矩阵中 20 项通过） | 该 28 项矩阵不适用于当前 36 项；7 项 POSIX hook 测试和 1 项符号链接测试跳过 |
+| WSL Ubuntu 22.04 隔离回归 | 未重跑（此前的 28 项矩阵通过） | 该结果保留作历史，不与 Linux 结果合并成“全平台通过” |
+| 符号链接 staged-path 回归 | Linux 回归通过；Windows 曾跳过 | Linux 结果不替代 Windows 权限能力验证 |
 | 真实项目 hook 安装/doctor/提交 | 安装、doctor 与第一条提交链通过；restore 未执行 | 当前仓库宿主与项目门禁均已实际运行；不代表其他机器链路 |
 | 目标平台 Skill 发现/加载 | 未执行 | frontmatter/结构检查不代表已加载 |
-| PLC 编译、仿真、Trace、实机 | 未执行 | 不属于本轮静态检查覆盖范围 |
+| PLC 编译、仿真、Trace、实机 | 未执行 | 不属于静态检查覆盖范围 |
 
-本轮 Linux 命令 `python3 -B -m unittest discover -s evals/tests` 为 36 passed、0 failed；`python3 -B evals/run.py` 为 41 个文件通过；`python3 -B scripts/validate_skill.py . --strict` 与 `python3 -B evals/check_foundation.py` 均为 0 错误。上一轮 Windows 20 passed/8 skipped 与 WSL 28 passed 的结果分开保留，不合并成“全平台通过”。`check_foundation.py` 与 `project_policy.py candidates` 单独执行并分别报告。
+2026-11-09 复核的 Linux 命令 `python3 -B -m unittest discover -s evals/tests` 为 36 passed、0 failed；`python3 -B evals/run.py` 为 41 个文件通过；`python3 -B scripts/validate_skill.py . --strict` 与 `python3 -B evals/check_foundation.py` 均为 0 错误。此前的 Windows 20 passed/8 skipped 与 WSL 28 passed 结果分开保留，不合并成“全平台通过”。`check_foundation.py` 与 `project_policy.py candidates` 单独执行并分别报告。
 
 将 `TMPDIR` 指向仓库外专用 scratch，运行标准库单元测试、隔离 Git 回归、foundation 检查和候选扫描。在兼容宿主环境另运行真实 host 集成；stub 仅作故障注入，不能代替现场宿主证据。无兼容宿主时明确标未执行。结构脚本不证明教学质量。
 
-首次项目提交还需用户确认公开 author/committer 身份、检查工程树、完成后续自我审查验收，并明确批准提交。维护工具自身不写身份配置、不暂存、不提交、不创建 remote。`doctor` 成功仅表示当时局部 hooks 可达；实际提交链另以提交执行结果为证。本地 hooks 可被 Git 配置或人工改动绕过，不提供服务端强制能力；不自动升版或发布。未获批许可证时不添加虚构许可证。
+首次项目提交还需用户确认公开 author/committer 身份并明确批准提交。维护工具自身不写身份配置、不暂存、不提交、不创建 remote。`doctor` 成功仅表示当时局部 hooks 可达；实际提交链另以提交执行结果为证。本地 hooks 可被 Git 配置或人工改动绕过，不提供服务端强制能力；不自动升版或发布。未获批许可证时不添加虚构许可证。

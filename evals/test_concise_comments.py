@@ -62,6 +62,62 @@ def test_numbered_notes_and_urls_remain_supported():
     assert checker.comment_payload(note) == note
 
 
+def test_ai_prefix_is_not_a_way_to_hide_empty_or_low_value_notes():
+    for note in ('AI:', 'AI: 条件判断开始', 'AI: 未知', 'AI: 将 x 赋值为 TRUE'):
+        assert report('IF x THEN y:=TRUE; END_IF; // ' + note)['errors'], note
+
+
+def test_condition_ai_gate_covers_if_elsif_and_continuations():
+    raw = '```st\nIF xReady // AI: 检查当前入口许可\n AND NOT xHold THEN // AI: 暂停标志会阻止当前写入路径\n y:=TRUE; // AI: 发布本段请求\nELSIF xReset THEN // AI: 仅前述条件未选中时检查复位请求\n y:=FALSE; // AI: 撤销本段请求\nELSE // AI: 两个入口均不满足时走保底路径\n y:=FALSE; // AI: 保底路径撤销本段结果\nEND_IF;\n```\n'
+    assert not checker.check_condition_ai(raw)
+    for original in ('IF xReady // AI: 检查当前入口许可',
+                     ' AND NOT xHold THEN // AI: 暂停标志会阻止当前写入路径',
+                     'ELSIF xReset THEN // AI: 仅前述条件未选中时检查复位请求',
+                     'ELSE // AI: 两个入口均不满足时走保底路径'):
+        broken = raw.replace(original, original.split(' // AI:')[0])
+        assert broken != raw
+        assert checker.check_condition_ai(broken), original
+
+
+def test_condition_gate_ignores_strings_comments_and_graphics():
+    raw = '```st\nmessage := \'IF x THEN // AI:\';\n// IF x THEN\n(* ELSIF x THEN *)\nEND_IF;\n```\n```lad\nIF x THEN\n```\n'
+    assert not checker.check_condition_ai(raw)
+    raw = '```st\nIF x THEN // 原作者说明 // AI: 检查该入口允许标志\nEND_IF;\n```\n'
+    assert not checker.check_condition_ai(raw)
+    assert checker.check_condition_ai(raw.replace(' // AI: 检查该入口允许标志', ''))
+
+
+def test_single_line_if_ai_note_and_newest_payload_are_checked():
+    raw = '```st\nIF x THEN y:=TRUE; END_IF; // AI: 入口允许时发布本段请求\n```\n'
+    assert not checker.check_condition_ai(raw)
+    assert not checker.check_text(raw)['errors']
+    bad = raw.replace('入口允许时发布本段请求', '条件判断开始')
+    assert checker.check_condition_ai(bad)
+    assert checker.check_text(bad)['errors']
+    assert checker.low_value('作者说明 // AI: 未知', 'IF x THEN')
+
+
+def test_condition_gate_requires_line_comment_not_block_or_literal_marker():
+    for code in ('IF x THEN (* AI: 检查该入口的允许标志 *)',
+                 "IF x = ' // AI: 值' THEN", 'IF x THEN // AI:'):
+        assert checker.check_condition_ai('```st\n'+code+'\nEND_IF;\n```\n'), code
+
+
+def test_condition_cli_rejects_missing_tail_and_accepts_annotated_sample():
+    import subprocess
+    import tempfile
+    with tempfile.TemporaryDirectory() as directory:
+        path = Path(directory) / 'sample.md'
+        good = '```st\nIF x THEN // AI: 检查本段入口许可\n y:=TRUE; // AI: 发布本段请求\nEND_IF;\n```\n'
+        command = [sys.executable, '-B', str(Path(__file__).resolve().parents[1] / 'scripts/check_plc_comments.py'), str(path), '--require-condition-ai', '--json']
+        path.write_text(good, encoding='utf-8')
+        result = subprocess.run(command, capture_output=True, text=True)
+        assert result.returncode == 0, result.stdout + result.stderr
+        path.write_text(good.replace(' // AI: 检查本段入口许可', ''), encoding='utf-8')
+        result = subprocess.run(command, capture_output=True, text=True)
+        assert result.returncode == 1 and '条件判断行' in result.stdout, result.stdout
+
+
 if __name__ == '__main__':
     tests = [value for name, value in list(globals().items()) if name.startswith('test_')]
     for test in tests:
