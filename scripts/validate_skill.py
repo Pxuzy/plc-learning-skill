@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import sys
 from pathlib import Path
@@ -78,7 +79,15 @@ def local_targets(text: str, source: str, *, include_code_paths: bool = True) ->
     return {target.split("#", 1)[0] for target in targets}
 
 
-def catalog_checks(skill_dir: Path, text: str, errors: list[str]) -> None:
+MAINTENANCE_SCRIPTS = {'scripts/git_privacy_gate.py', 'scripts/hooks.py', 'scripts/project_policy.py'}
+
+
+def maintenance_target(target: str) -> bool:
+    parts = Path(target).parts
+    return bool(parts and parts[0] in {'evals', 'docs', '.githooks'}) or target in MAINTENANCE_SCRIPTS
+
+
+def catalog_checks(skill_dir: Path, text: str, errors: list[str], runtime: bool = False) -> None:
     """校验唯一资产登记与入口可达性，不重新登记模板版本。"""
     if CATALOG not in local_targets(text, "SKILL.md"):
         errors.append("入口缺少 catalog 路由")
@@ -102,6 +111,8 @@ def catalog_checks(skill_dir: Path, text: str, errors: list[str]) -> None:
                 errors.append("catalog 规则 ID 重复：" + rule_id)
             rule_ids.add(rule_id)
             for target, anchor in re.findall(r"`(evals/[^`#]+)(?:#([^`]+))?`", line):
+                if runtime and maintenance_target(target):
+                    continue
                 target_path = skill_dir / target
                 if not target_path.is_file():
                     errors.append("catalog 规则证据目标不存在：" + target)
@@ -133,7 +144,7 @@ def catalog_checks(skill_dir: Path, text: str, errors: list[str]) -> None:
         if target in registered:
             errors.append("catalog 重复登记资产：" + target)
         registered.add(target)
-        if not (skill_dir / target).is_file():
+        if not (runtime and maintenance_target(target)) and not (skill_dir / target).is_file():
             errors.append("catalog 登记文件不存在：" + target)
     actual = {p.relative_to(skill_dir).as_posix()
               for directory in ("references", "scripts", "evals")
@@ -149,7 +160,7 @@ def catalog_checks(skill_dir: Path, text: str, errors: list[str]) -> None:
                         for p in (skill_dir / "evals").glob("test_*.py")}
     for target in sorted(discovered_tests - catalog_tests):
         errors.append("catalog 未登记 runner 测试：" + target)
-    for target in sorted(catalog_tests - discovered_tests):
+    for target in sorted(catalog_tests - discovered_tests) if not runtime else []:
         errors.append("catalog 登记了 runner 未发现的测试：" + target)
 
     docs = {"SKILL.md": text}
@@ -159,7 +170,7 @@ def catalog_checks(skill_dir: Path, text: str, errors: list[str]) -> None:
              for source, body in docs.items()}
     for source, body in sorted(docs.items()):
         for target in sorted(local_targets(body, source)):
-            if not (skill_dir / target).is_file():
+            if not (runtime and maintenance_target(Path(os.path.normpath(target)).as_posix())) and not (skill_dir / target).is_file():
                 errors.append(f"引用了不存在的文件：{source} -> {target}")
     reached, pending = set(), ["SKILL.md"]
     while pending:
@@ -234,6 +245,7 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("skill_dir", nargs="?", default=".")
     ap.add_argument("--strict", action="store_true", help="检查 H2 顺序、软行数与模板/校验器标题对齐")
+    ap.add_argument("--runtime", action="store_true", help="独立运行包：只豁免明确的维护资产，仍核验运行文件与引用")
     args = ap.parse_args(argv)
     skill_dir = Path(args.skill_dir).resolve()
     skill_md = skill_dir / "SKILL.md"
@@ -288,7 +300,7 @@ def main(argv: list[str] | None = None) -> int:
 
     refs = skill_dir / "references"
     if (skill_dir / CATALOG).is_file() or "## 领域底线（Domain Invariants）" in text:
-        catalog_checks(skill_dir, text, errors)
+        catalog_checks(skill_dir, text, errors, runtime=args.runtime)
     elif refs.is_dir():
         for ref in refs.rglob("*.md"):
             rel = ref.relative_to(skill_dir).as_posix()

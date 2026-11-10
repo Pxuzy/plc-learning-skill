@@ -161,10 +161,37 @@ def install(local_only):
     print('hooks: installed locally; doctor OK; mode=' + state['mode'])
 
 
+def diagnose_effective():
+    """Inspect actual host/delegate bytes without mutating shared Git config."""
+    dependencies()
+    effective = git('config', '--get', 'core.hooksPath', optional=True)
+    if not effective:
+        raise SetupError('effective host missing')
+    host = resolve(effective)
+    if host == (ROOT / '.githooks').resolve():
+        for name in REQUIRED:
+            executable(host / name)
+    else:
+        host_contract(host)
+        delegate = git('config', '--get', 'privacy.originalHooksPath', optional=True)
+        if not delegate:
+            raise SetupError('delegate missing')
+        target = resolve(delegate)
+        for name in (*REQUIRED, 'python.sh'):
+            executable(target / name)
+            if (target / name).read_bytes() != (ROOT / '.githooks' / name).read_bytes():
+                raise SetupError('effective delegate differs from candidate')
+    print('doctor: OK; effective host/delegate verified; configuration unchanged')
+    print('doctor: does not certify history privacy or installer ownership')
+
+
 def main():
     args = sys.argv[1:]
+    if args == ['doctor', '--effective']:
+        diagnose_effective()
+        return
     if args not in (['install'], ['install', '--local-only'], ['doctor'], ['restore']):
-        raise SetupError('usage: hooks.py install [--local-only] | doctor | restore')
+        raise SetupError('usage: hooks.py install [--local-only] | doctor [--effective] | restore')
     if args[0] != 'restore':
         dependencies()
     if resolve(git('rev-parse', '--show-toplevel')) != ROOT:

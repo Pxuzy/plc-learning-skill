@@ -23,6 +23,8 @@ REQUIRED = [
     "templates/index.md",
     "templates/project-navigation.md",
     "templates/handbook-index.md",
+    "references/template-index.md",
+    "references/local-code-explanation.md",
     "scripts/validate_handbook.py",
 ]
 errors = []
@@ -111,35 +113,73 @@ for phrase in ("按具体变量及声明/作用域逐项记录", "不把多个�
 template_path = ROOT / "templates/code-explanation.md"
 if template_path.is_file():
     template = template_path.read_text(encoding="utf-8")
+    if "<!-- template-authority: references/local-code-explanation.md -->" not in template:
+        errors.append("local explanation template lacks its authoritative reference")
+    for meta in ("> 工程：", "> 讲解深度：", "> 讲解版式：块级", "> 模块编号："):
+        if meta not in template:
+            errors.append(f"local explanation template metadata missing: {meta}")
+    if "### M01 " not in template or "**一句话说清**：" not in template:
+        errors.append("local explanation template module skeleton missing")
     sections = (
-        "## 1. 功能定位与执行条件",
-        "## 2. 源码",
-        "## 3. 代码块整体讲解",
-        "## 4. 形象示例",
-        "## 5. 程序交互与段间交接",
+        "#### 1. 功能定位与执行条件",
+        "#### 2. 源码",
+        "#### 3. 代码块整体讲解",
+        "#### 4. 形象示例",
+        "#### 5. 程序交互与段间交接",
     )
     positions = [template.find(section) for section in sections]
     if any(position < 0 for position in positions) or positions != sorted(positions):
         errors.append("local explanation template sections missing or out of order")
+    if re.search(r"(?m)^## 1\. 功能定位与执行条件", template):
+        errors.append("local explanation template still uses the retired H2 five-part layout")
     if "| 变量 | 数据类型 | 方向 | 含义 | 谁写谁读 | 证据等级 |" not in template:
         errors.append("local explanation template variable table has incorrect columns")
     for field in ("处理过程", "关键逻辑", "写法好处", "状态变化"):
-        if f"### {field}" not in template:
+        if f"**{field}**：" not in template:
             errors.append(f"local explanation template missing field: {field}")
+    for marker in (
+        "**来源定位**：",
+        "<!-- src:",
+        "<!-- source-eof: none -->",
+        "<!-- explanation:",
+        "<!-- unreviewed:",
+        "// AI: ",
+        "<!-- 本段已完 -->",
+        "<!-- 继续点：",
+    ):
+        if marker not in template:
+            errors.append(f"local explanation template missing contract marker: {marker}")
 
+template_id_pattern = re.compile(r"\b[A-Z][A-Z0-9_-]*@\d+\.\d+\b")
+registry_path = ROOT / "references/template-index.md"
 template_index = ROOT / "templates/index.md"
-if template_index.is_file():
+if registry_path.is_file() and template_index.is_file():
+    registry = registry_path.read_text(encoding="utf-8")
     routing = template_index.read_text(encoding="utf-8")
+    if "唯一登记" not in registry:
+        errors.append("template registry must declare itself the single registration authority")
+    registered = set(template_id_pattern.findall(registry))
     for template_id, relative in (
         ("CODE@1.0", "templates/code-explanation.md"),
         ("NAV@1.0", "templates/project-navigation.md"),
         ("BOOKSET@1.0", "templates/handbook-index.md"),
     ):
         source = ROOT / relative
-        if template_id not in routing:
+        if template_id not in registered:
             errors.append(f"template registry missing {template_id}")
+        if template_id not in routing:
+            errors.append(f"template router missing {template_id}")
         if source.is_file() and template_id not in source.read_text(encoding="utf-8"):
             errors.append(f"template ID missing from {relative}")
+    unregistered = set(template_id_pattern.findall(routing)) - registered
+    if unregistered:
+        errors.append("template router introduces unregistered IDs: " + ", ".join(sorted(unregistered)))
+    handbook = ROOT / "templates/handbook-index.md"
+    if handbook.is_file() and (
+        "<!-- template-compat: BOOKSET@1.0 -> references/template-handbook-index.md -->"
+        not in handbook.read_text(encoding="utf-8")
+    ):
+        errors.append("BOOKSET presentation must reference the single authoritative body")
 
 if errors:
     print("Foundation checks failed:")

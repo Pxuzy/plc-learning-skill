@@ -43,6 +43,7 @@ class PolicyTests(unittest.TestCase):
                 'references/inline-comment-style.md',
                 'references/inline-comment-examples.md',
                 'references/skill-maintenance.md',
+                'references/workflows/read-project.md',
             ]
 
             for relative in tracked_markdown:
@@ -84,18 +85,31 @@ class PolicyTests(unittest.TestCase):
         template = ROOT / 'templates/code-explanation.md'
         self.assertTrue(template.is_file(), 'local code explanation template must exist')
         content = template.read_text(encoding='utf-8')
+        self.assertIn('<!-- template-authority: references/local-code-explanation.md -->', content,
+                      'the presentation template must point at its single authoritative reference')
+        for meta in ('> 工程：', '> 讲解深度：', '> 讲解版式：块级', '> 模块编号：'):
+            self.assertIn(meta, content, 'official metadata line must be presented')
+        self.assertIn('### M01 ', content)
+        self.assertIn('**一句话说清**：', content)
         sections = (
-            '## 1. 功能定位与执行条件',
-            '## 2. 源码',
-            '## 3. 代码块整体讲解',
-            '## 4. 形象示例',
-            '## 5. 程序交互与段间交接',
+            '#### 1. 功能定位与执行条件',
+            '#### 2. 源码',
+            '#### 3. 代码块整体讲解',
+            '#### 4. 形象示例',
+            '#### 5. 程序交互与段间交接',
         )
         positions = [content.index(section) for section in sections]
         self.assertEqual(positions, sorted(positions), 'five-part template sections must stay ordered')
+        self.assertNotRegex(content, r'(?m)^## 1\. 功能定位与执行条件',
+                            'the retired H2 five-part layout must not come back')
         self.assertIn('| 变量 | 数据类型 | 方向 | 含义 | 谁写谁读 | 证据等级 |', content)
         for field in ('处理过程', '关键逻辑', '写法好处', '状态变化'):
-            self.assertIn(f'### {field}', content)
+            self.assertIn(f'**{field}**：', content)
+            self.assertNotIn(f'### {field}', content)
+        for marker in ('**来源定位**：', '<!-- src:', '<!-- source-eof: none -->',
+                       '<!-- explanation:', '<!-- unreviewed:', '// AI: ',
+                       '<!-- 本段已完 -->', '<!-- 继续点：'):
+            self.assertIn(marker, content, f'contract marker must be presented: {marker}')
 
     def test_project_navigation_template_contract(self):
         template = ROOT / 'templates/project-navigation.md'
@@ -123,11 +137,23 @@ class PolicyTests(unittest.TestCase):
             self.assertIn(filename, index)
         self.assertIn('用户已明确指定对象', index)
         self.assertIn('用户明确要求完整范围', index)
+        self.assertIn('references/template-index.md', index, 'router must point at the single registry')
+        registry = (ROOT / 'references/template-index.md').read_text(encoding='utf-8')
+        self.assertIn('唯一登记', registry)
+        for identifier in ('CODE@1.0', 'NAV@1.0', 'BOOKSET@1.0'):
+            self.assertIn(identifier, registry, f'registry must register {identifier}')
+        self.assertIn('| BOOKSET@1.0 | `references/template-handbook-index.md`', registry,
+                      'BOOKSET must resolve to one authoritative body')
 
         bookset = (ROOT / 'templates/handbook-index.md').read_text(encoding='utf-8')
         self.assertIn('| 册号 | 手册文件 | 对象范围 | 覆盖状态 | 来源证据 |', bookset)
         self.assertIn('跨册关系', bookset)
         self.assertIn('未知与缺口', bookset)
+        self.assertIn('<!-- template-compat: BOOKSET@1.0 -> references/template-handbook-index.md -->', bookset,
+                      'the second same-version file must declare itself a compatibility presentation')
+        body = (ROOT / 'references/template-handbook-index.md').read_text(encoding='utf-8')
+        for section in ('## 四、单元索引', '## 五、跨单元逻辑关系', '## 六、覆盖与缺口'):
+            self.assertIn(section, body, 'valid fields of the authoritative body must be kept')
 
     def test_annotation_policy_defaults_to_selective_value_add_comments(self):
         skill = (ROOT / 'SKILL.md').read_text(encoding='utf-8')
@@ -241,6 +267,9 @@ class PolicyTests(unittest.TestCase):
         for category, value in bad:
             with self.subTest(category=category):
                 self.assertIn(category, self.p.content_errors(value.encode()))
+        self.assertFalse(self.p.content_errors(('noreply' + '@' + 'github.com').encode()))
+        for mailbox in ['personal' + '@' + 'github.com', 'noreply' + '@' + 'github.com.invalid']:
+            self.assertIn('email', self.p.content_errors(mailbox.encode()))
         clean = '普通代码 x := 1; docs https://example.com ' + PUBLIC
         clean += ' 12345+fixture@users.noreply.github.com 192.0.2.10 2001:db8::1'
         self.assertFalse(self.p.content_errors(clean.encode()))

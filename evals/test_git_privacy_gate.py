@@ -107,6 +107,31 @@ class GateTests(unittest.TestCase):
                 self.git('add', 'candidate.md')
                 self.assert_blocked(self.gate('staged'))
 
+    def test_github_service_email_passes_without_allowing_other_mailboxes(self):
+        service = 'noreply' + '@' + 'github.com'
+        for mailbox, allowed in [(service, True),
+                                 ('personal' + '@' + 'github.com', False),
+                                 ('noreply' + '@' + 'github.com.invalid', False),
+                                 ('private' + '@' + 'mail.invalid', False)]:
+            with self.subTest(allowed=allowed):
+                self.put('candidate.md', mailbox + '\n')
+                self.git('add', 'candidate.md')
+                result = self.gate('staged')
+                self.assertEqual(result.returncode == 0, allowed)
+                self.assertNotIn(mailbox, result.stdout + result.stderr)
+
+    def test_github_merge_committer_passes_full_history_and_new_branch_push(self):
+        env = dict(os.environ, GIT_COMMITTER_NAME='GitHub',
+                   GIT_COMMITTER_EMAIL='noreply' + '@' + 'github.com')
+        result = subprocess.run(['git', '-C', str(self.repo), 'commit', '--allow-empty',
+                                 '-qm', 'merge(skill): 合并合成分支\n\n- 验证服务身份'],
+                                env=env, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        head = self.git('rev-parse', 'HEAD').stdout.strip()
+        self.assertEqual(self.gate('history', head).returncode, 0)
+        payload = f'refs/heads/topic {head} refs/heads/topic ' + '0' * 40 + '\n'
+        self.assertEqual(self.gate('pre-push', data=payload).returncode, 0)
+
     def test_regex_and_slice_syntax_are_not_ipv6(self):
         parser_sample = 'sample = values[' + ':' * 2 + '-1]\n'
         parser_sample += "regex = r'(?" + ':' + ':' + "=|=>)'\n"

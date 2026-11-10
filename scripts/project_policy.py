@@ -59,7 +59,8 @@ def message_errors(text):
 
 def public_email(value):
     local, domain = value.lower().rsplit('@', 1)
-    return (domain in ('example.com', 'example.org', 'example.net') or
+    return ((local == 'noreply' and domain == 'github.com') or
+            domain in ('example.com', 'example.org', 'example.net') or
             (domain == 'users.noreply.github.com' and
              re.fullmatch(r'(?:[0-9]+\+)?[a-z0-9-]+', local) is not None))
 
