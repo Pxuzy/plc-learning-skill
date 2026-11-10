@@ -99,7 +99,7 @@ class ReadAssetBoundary(unittest.TestCase):
         rejected_keys = (
             str(ROOT / "SKILL.md"),
             "references/../SKILL.md",
-            "../plc-program-framework-learning/SKILL.md",
+            f"../{ROOT.name}/SKILL.md",
             "WORK_REPORT.md",
         )
         for asset_key in rejected_keys:
@@ -348,12 +348,11 @@ class RuntimeEditorialBoundaryContract(unittest.TestCase):
     """静态防回退：不把词命中当模型行为或 PLC 语义证明。"""
     def test_runtime_entry_does_not_assemble_old_dialogue_or_versions(self):
         entry = read_asset("SKILL.md")
-        for fragment in ("叠加 2026-11-02", "用户判旧版更好时", "3.22.17",
-                         "3.22.2 的教学核心"):
+        for fragment in ("用户判旧版更好时", "来自旧技能", "迁入旧技能"):
             with self.subTest(fragment=fragment):
                 self.assertNotIn(fragment, entry)
         body = entry.split("---", 2)[-1]
-        self.assertNotRegex(body, r"3\.22\.\d+", "执行入口正文不应再引用历史版本号")
+        self.assertNotRegex(body, r"\b\d+\.\d+\.\d+\b", "执行入口正文不应再引用技能版本沿革")
         self.assertIn("维护入口（仅修改技能时加载）", entry)
         self.assertIn("技能维护与成果保护", read_asset("references/workflow.md"))
 

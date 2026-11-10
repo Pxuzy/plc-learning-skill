@@ -11,7 +11,7 @@
 
 ```
 HERMES_HOME=<root>/hermes-home hermes chat --provider <p> --model <m> \
-  --skills plc-program-framework-learning --toolsets skills \
+  --skills plc-learning-skill --toolsets skills \
   --query-file prompt.txt --oneshot --format stream-json --max-turns 100
 ```
 
