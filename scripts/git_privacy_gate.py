@@ -79,7 +79,9 @@ class Scanner:
                 self.issue(label, number, 'local-home-path')
             for email in re.findall(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b', line):
                 domain = email.rsplit('@', 1)[1].lower()
-                if domain not in {'users.noreply.github.com', 'example.com', 'example.net', 'example.org'}:
+                # Exact public GitHub service mailbox; never allow the whole domain.
+                service_mailbox = email.lower() == 'noreply@github.com'
+                if not service_mailbox and domain not in {'users.noreply.github.com', 'example.com', 'example.net', 'example.org'}:
                     self.issue(label, number, 'personal-email')
             candidates = re.findall(r'(?<![\w.])(?:\d{1,3}\.){3}\d{1,3}(?![\w.])', line)
             candidates += [value for value in re.findall(
