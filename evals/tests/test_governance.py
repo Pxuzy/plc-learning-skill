@@ -267,6 +267,9 @@ class PolicyTests(unittest.TestCase):
         for category, value in bad:
             with self.subTest(category=category):
                 self.assertIn(category, self.p.content_errors(value.encode()))
+        self.assertFalse(self.p.content_errors(('noreply' + '@' + 'github.com').encode()))
+        for mailbox in ['personal' + '@' + 'github.com', 'noreply' + '@' + 'github.com.invalid']:
+            self.assertIn('email', self.p.content_errors(mailbox.encode()))
         clean = '普通代码 x := 1; docs https://example.com ' + PUBLIC
         clean += ' 12345+fixture@users.noreply.github.com 192.0.2.10 2001:db8::1'
         self.assertFalse(self.p.content_errors(clean.encode()))
