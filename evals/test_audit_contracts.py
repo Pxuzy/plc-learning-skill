@@ -113,7 +113,7 @@ class AuditContracts(unittest.TestCase):
                     '<!-- src: 3-4 -->\n```st\n// NETWORK 2\n'
                     'xOutput := xEnable; // 本网络将上段结果交给下游读取，物理输出归属未提供\n```\n')
             path = self.write('topic.md', doc)
-            result = harness.run(ROOT / 'scripts/validate_handbook.py', path)
+            result = harness.run(ROOT / 'scripts/validate_handbook.py', path, '--original-source')
             self.assertEqual(result.returncode, 0, result.stdout)
             self.assertFalse(check_text(doc)['errors'])
             self.assertEqual(integrity.run(manifest, path, False, set(), final=True).errors, 0)
@@ -127,10 +127,10 @@ class AuditContracts(unittest.TestCase):
                            'rationale': 'only assignment data flow is asserted; task, wiring and other writers remain unknown',
                            'issues': []} for b in report['blocks']]}
             receipt = self.write('review.json', json.dumps(review))
-            result = harness.run(ROOT / 'scripts/validate_handbook.py', path, '--final', '--comment-review', receipt)
+            result = harness.run(ROOT / 'scripts/validate_handbook.py', path, '--final', '--original-source', '--comment-review', receipt)
             self.assertEqual(result.returncode, 0, result.stdout)
             bad = doc.replace('<!-- src: 3-4 -->', '')
-            result = harness.run(ROOT / 'scripts/validate_handbook.py', self.write('missing-source.md', bad))
+            result = harness.run(ROOT / 'scripts/validate_handbook.py', self.write('missing-source.md', bad), '--original-source')
             self.assertEqual(result.returncode, 1, result.stdout)
             bad = doc.replace('xOutput := xEnable;', 'xOutput := FALSE;')
             self.assertTrue(integrity.run(manifest, self.write('altered.md', bad), False, set()).altered)

@@ -41,6 +41,37 @@ class TemplateFormatTests(unittest.TestCase):
         report = json.loads(result.stdout)
         self.assertTrue(any(x['rule'] == category for x in report['errors']), report)
 
+    def test_source_closer_joined_to_code_is_rejected(self):
+        self.mutate('templates/code-explanation.md', '\n```\n<!-- source-eof:', '```\n<!-- source-eof:')
+        self.rejected('fence')
+
+    def test_templates_are_renderable_without_markdown_wrappers(self):
+        sys.path.insert(0, str(ROOT / 'scripts'))
+        from markdown_fences import parse_fences
+        data = json.loads((ROOT / 'assets/template-format-contracts.json').read_text())
+        paths = {e['path'] for e in data['templates']}
+        paths.add('references/local-code-explanation.md')
+        paths.add('references/code-reading.md')
+        for name in sorted(paths):
+            with self.subTest(name=name):
+                wrappers = [b for b in parse_fences((ROOT / name).read_text())
+                            if b['lang'] in {'markdown', 'md'}]
+                self.assertFalse(wrappers, f'{name}: headings and tables hidden in code fences')
+
+    def test_wrapping_template_in_markdown_or_plain_fence_is_rejected(self):
+        path = self.root / 'templates/project-navigation.md'
+        original = path.read_text()
+        for language in ('markdown', 'md', 'text', ''):
+            with self.subTest(language=language):
+                path.write_text('~~~~' + language + '\n' + original + '\n~~~~\n')
+                self.rejected('template-render')
+        path.write_text(original)
+
+    def test_wrapping_authority_in_markdown_is_rejected(self):
+        path = self.root / 'references/local-code-explanation.md'
+        path.write_text('~~~~markdown\n' + path.read_text() + '\n~~~~\n')
+        self.rejected('template-render')
+
     def test_all_registered_assets_pass(self):
         result = self.run_check()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -76,7 +107,7 @@ class TemplateFormatTests(unittest.TestCase):
         self.rejected('compat-declaration')
 
     def test_broken_fence_is_rejected(self):
-        self.mutate('templates/code-explanation.md', '````\n', '~~~\n')
+        self.mutate('templates/code-explanation.md', '```st\n', '````st\n')
         self.rejected('fence')
 
     def test_empty_section_is_rejected(self):
@@ -175,7 +206,8 @@ class TemplateFormatTests(unittest.TestCase):
         data = json.loads((ROOT / 'assets/template-format-contracts.json').read_text(encoding='utf-8'))
         self.assertEqual([(len(e['headings']), len(e['tables'])) for e in data['templates']],
                          [(27,16),(8,1),(14,3),(5,2),(5,3),(13,3),(8,3),(11,7),(10,3),(8,4),(10,6),(6,3)])
-        self.assertEqual(len(data['templates'][9]['fields']), 19)
+        # 20 项含骨架里的“控制目标与范围”，契约字段集合须与可复制骨架一致。
+        self.assertEqual(len(data['templates'][9]['fields']), 20)
 
     def test_parent_path_in_contract_is_rejected(self):
         path = self.root / 'assets/template-format-contracts.json'
@@ -183,6 +215,89 @@ class TemplateFormatTests(unittest.TestCase):
         data['templates'][0]['path'] = '../outside.md'
         path.write_text(json.dumps(data), encoding='utf-8')
         self.rejected('unsafe-path')
+
+    def test_extra_copyable_part_is_rejected(self):
+        self.mutate('templates/code-explanation.md', '<!-- 本段已完 -->',
+                    '<!-- 本段已完 -->\n\n#### 6. 附录补充说明\n\n补充说明。')
+        self.rejected('heading-contract')
+
+    def test_extra_copyable_field_is_rejected(self):
+        self.mutate('templates/code-explanation.md', '**验证状态**：<',
+                    '**边界条件**：<占位>\n\n**验证状态**：<')
+        self.rejected('field-contract')
+
+    def test_extra_authority_field_is_rejected(self):
+        self.mutate('references/local-code-explanation.md', '**验证状态**：<',
+                    '**边界条件**：<占位>\n\n**验证状态**：<')
+        self.rejected('authority-field')
+
+    def test_authority_heading_rename_is_rejected(self):
+        self.mutate('references/workflows/project-navigation.md',
+                    '## 5. 进入标准讲解', '## 5. 进入讲解')
+        self.rejected('authority-heading')
+
+    def test_authority_spec_requires_view_and_headings(self):
+        path = self.root / 'assets/template-format-contracts.json'
+        data = json.loads(path.read_text(encoding='utf-8'))
+        data['templates'][10]['authority_spec']['view'] = 'sideways'
+        path.write_text(json.dumps(data, ensure_ascii=False), encoding='utf-8')
+        self.rejected('contract-schema')
+
+    def test_extra_authority_section_is_rejected(self):
+        self.mutate('references/workflows/project-navigation.md', '## 6. 交付与继续学习',
+                    '## 6. 交付与继续学习\n\n## 7. 追加章节')
+        self.rejected('authority-heading')
+
+    def test_trailing_symbol_outside_old_emoji_range_is_decorative(self):
+        self.mutate('templates/code-explanation.md', '#### 4. 形象示例 🧪',
+                    '#### 4. 形象示例 ⭐')
+        result = self.run_check()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_source_slot_rule_does_not_bind_version_literal(self):
+        for name in ('assets/template-format-contracts.json', 'templates/code-explanation.md',
+                     'references/template-index.md'):
+            path = self.root / name
+            text = path.read_text(encoding='utf-8')
+            self.assertIn('CODE@1.0', text)
+            path.write_text(text.replace('CODE@1.0', 'CODE@1.1'), encoding='utf-8')
+        path = self.root / 'templates/code-explanation.md'
+        import re
+        text, count = re.subn(r'(?m)^```st\n.*?^```\n', '', path.read_text(encoding='utf-8'), flags=re.DOTALL)
+        self.assertEqual(count, 1)
+        path.write_text(text, encoding='utf-8')
+        self.rejected('source-slot')
+
+
+    def test_required_field_cannot_be_hidden_in_prose(self):
+        self.mutate('templates/code-explanation.md', '**处理过程**：<', '正文提到 **处理过程**：<')
+        self.rejected('field-contract')
+
+    def test_required_authority_field_cannot_be_hidden_in_prose(self):
+        self.mutate('references/local-code-explanation.md', '**处理过程**：<', '正文提到 **处理过程**：<')
+        self.rejected('authority-field')
+
+    def test_body_template_extra_section_is_rejected(self):
+        path = self.root / 'templates/project-navigation.md'
+        path.write_text(path.read_text() + '\n## 7. 追加章节\n\n新增说明。\n')
+        self.rejected('heading-contract')
+
+    def test_extra_table_is_rejected(self):
+        self.mutate('templates/code-explanation.md', '<!-- 本段已完 -->',
+                    '| 新增A | 新增B |\n|---|---|\n| 值A | 值B |\n\n<!-- 本段已完 -->')
+        self.rejected('table-contract')
+
+    def test_authority_table_column_change_is_rejected(self):
+        self.mutate('references/local-code-explanation.md',
+                    '| 变量 | 数据类型 | 方向 | 含义 | 谁写谁读 | 证据等级 |',
+                    '| 变量 | 数据类型 | 方向 | 含义 | 谁写谁读 | 错误列 |')
+        self.rejected('authority-table')
+
+    def test_nested_unregistered_template_is_rejected(self):
+        path = self.root / 'templates/nested/extra.md'
+        path.parent.mkdir()
+        path.write_text('# 新模板\n')
+        self.rejected('unregistered-template')
 
 
 if __name__ == '__main__':

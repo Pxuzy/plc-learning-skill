@@ -140,8 +140,38 @@ def compact(text: str) -> str:
 
 def comment_payload(comment: str) -> str:
     """Check the appended note independently, retaining legacy prefix support."""
+    marker = AI_MARKER.search(comment)
+    if marker:
+        return ai_annotation(comment)[1]
     payload = comment.rsplit("// 教学补充：", 1)[-1].rsplit(" // ", 1)[-1].strip()
     return re.sub(r'^AI\s*[:：]\s*', '', payload).strip()
+
+
+AI_MARKER = re.compile(r'(?<![^\s/])AI: ')
+AI_MARKER_VARIANT = re.compile(r'(?<![^\s/])ai\s*[:：]\s*', re.I)
+ST_ALIAS_LANGS = {'plc', 'iec', 'iec61131', 'iec61131-3', 'fb'}
+ST_STRUCTURE = re.compile(r'\b(?:THEN|END_IF|END_CASE)\b', re.I)
+CONDITION_WORD = re.compile(r'\b(?:IF|ELSIF|ELSE|CASE)\b', re.I)
+CONDITION_TOKEN = re.compile(r'\b(?:END_IF|END_CASE|ELSIF|ELSE|IF|CASE|THEN)\b', re.I)
+
+
+def ai_annotation(comment: str) -> tuple[str, str]:
+    """Classify the AI marker of a trailing line comment.
+
+    Returns ``(state, payload)`` where state is ``ok``, ``format`` or
+    ``missing``. The payload runs from the canonical marker to the next
+    ``//`` fragment (with any surrounding whitespace), so a later fragment cannot lend substance to a
+    low-value note. This does not prove the marker follows the author tail.
+    """
+    canonical = AI_MARKER.search(comment)
+    if canonical:
+        payload = comment[canonical.end():]
+        # A second line-comment delimiter ends this annotation regardless of
+        # surrounding whitespace; do not split URL schemes such as https://.
+        return 'ok', re.split(r'(?<!:)//', payload, maxsplit=1)[0].strip()
+    if AI_MARKER_VARIANT.search(comment):
+        return 'format', ''
+    return 'missing', ''
 
 
 def single_action_if(mask: str, units: list[tuple[int, int]]) -> bool:
@@ -191,7 +221,7 @@ def numbered_notes(comment: str, count: int) -> list[str] | None:
     return notes if len(notes) == count else None
 
 
-def check_text(raw: str) -> dict:
+def check_text(raw: str, require_units: bool = True) -> dict:
     all_blocks = fences(raw)
     errors, checked, seen = fence_errors(raw, all_blocks), [], {}
     for block in all_blocks:
@@ -236,12 +266,14 @@ def check_text(raw: str) -> dict:
                 elif shared is not None:
                     candidates = [(end, shared)]
                 if not candidates:
-                    errors.append(f"{label} 缺少有效行内注释：{line['source'].strip()}")
+                    if require_units:
+                        errors.append(f"{label} 缺少有效行内注释：{line['source'].strip()}")
                     continue
                 comment = "；".join(value for _, value in candidates)
                 problem = low_value(comment, line["source"][:candidates[-1][0]])
                 if problem:
-                    errors.append(f"{label} {problem}：{comment.strip()}")
+                    if require_units:
+                        errors.append(f"{label} {problem}：{comment.strip()}")
                     continue
                 block["covered"] += 1
                 unit_report["covered"] = True
@@ -260,35 +292,82 @@ def check_condition_ai(raw: str) -> list[str]:
     """Check IF/ELSIF/ELSE and multiline condition lines in ST/SCL fences.
 
     Explicit mode for newly annotated output; legacy author comments remain
-    accepted by check_text. This checks presence and known empty prose only.
+    accepted by check_text. Marker variants are reported as format errors
+    rather than missing notes. CASE ``ELSE`` is not an IF condition, pure
+    ``)``/``;`` closure lines need no note, and low-value notes are judged on
+    the AI segment only. Alias fences (plc/iec/fb) are checked when their
+    content shows ST structure; ambiguous content is reported, never skipped.
+    This checks marker presence and known empty prose only; it cannot prove
+    the marker follows the author tail or that the condition reading is right.
     """
     errors = []
     for block in fences(raw):
-        if block['lang'] not in ST_LANGS:
+        lang = block['lang']
+        if lang not in ST_LANGS and lang not in ST_ALIAS_LANGS:
             continue
         lines, lexical_errors = lex_lines(block['text'])
+        if lang in ST_ALIAS_LANGS:
+            masked_text = '\n'.join(line['mask'] for line in lines)
+            if not CONDITION_WORD.search(masked_text):
+                continue
+            if not ST_STRUCTURE.search(masked_text):
+                errors.append(f"围栏 L{block['line']} 语言 {lang} 含条件关键字但缺少 THEN/END_IF 等 ST 结构，条件门禁无法判定；请改用 st/iecst 或人工核对")
+                continue
         errors.extend(f"围栏 L{block['line']}: {e}" for e in lexical_errors)
+        stack: list[str] = []
         in_condition = False
         for offset, line in enumerate(lines, 1):
             mask = line['mask']
-            condition = bool(re.search(r'\b(?:IF|ELSIF|ELSE)\b', mask, re.I))
-            required = bool(mask.strip()) and (condition or in_condition)
-            for token in re.findall(r'\b(?:IF|ELSIF|THEN|END_IF)\b', mask, re.I):
-                in_condition = token.upper() in {'IF', 'ELSIF'}
+            continuation = in_condition
+            required = False
+            for token in CONDITION_TOKEN.finditer(mask):
+                word = token.group(0).upper()
+                if word == 'IF':
+                    stack.append('IF')
+                    in_condition = True
+                    required = True
+                elif word == 'ELSIF':
+                    in_condition = True
+                    required = True
+                elif word == 'THEN':
+                    in_condition = False
+                elif word == 'ELSE':
+                    if stack and stack[-1] == 'IF':
+                        required = True
+                elif word == 'CASE':
+                    stack.append('CASE')
+                elif word == 'END_IF':
+                    if stack and stack[-1] == 'IF':
+                        stack.pop()
+                    in_condition = False
+                elif word == 'END_CASE':
+                    if stack and stack[-1] == 'CASE':
+                        stack.pop()
+            if continuation and not required:
+                required = True
+            if not mask.strip() or (required and CLOSE.fullmatch(mask)):
+                required = False
             if not required:
                 continue
             code_end = len(mask.rstrip())
             notes = [note for pos, note in line['comments'] if pos >= code_end
-                     and line['source'][pos:pos+2] == '//'
-                     and re.search(r'(?:^\s*|//\s*)AI: ', note)]
+                     and line['source'][pos:pos+2] == '//']
             label = f"L{block['line'] + offset} 条件判断行"
             if not notes:
                 errors.append(label + ' 缺少 // AI: 逐行条件注释')
+                continue
+            state, payload = ai_annotation(notes[-1])
+            if state == 'missing':
+                errors.append(label + ' 缺少 // AI: 逐行条件注释')
+            elif state == 'format':
+                errors.append(label + ' AI 标记格式不合规：须为半角冒号加一个空格 `// AI: `')
+            elif AI_MARKER_VARIANT.match(payload):
+                errors.append(label + ' 重复 AI 标记：只保留一个 // AI: 前缀')
             else:
-                problem = low_value(notes[-1], line['source'][:code_end])
+                problem = low_value(payload, line['source'][:code_end])
                 if problem:
                     errors.append(label + ' ' + problem)
-    return errors
+    return list(dict.fromkeys(errors))
 
 
 def check_every_code_line(raw: str) -> list[str]:
@@ -320,6 +399,39 @@ def check_every_code_line(raw: str) -> list[str]:
                     if problem:
                         errors.append(f"L{block['line'] + offset} {problem}：{line['source'].strip()}")
     return errors
+
+
+def check_default_annotations(raw: str) -> list[str]:
+    """Default teaching output: every textual code line has an AI business note.
+
+    Blank/comment-only lines are exempt. Graphical PLC representations keep
+    their network contract; this function does not reinterpret them as ST.
+    """
+    errors = []
+    textual = ST_LANGS | ST_ALIAS_LANGS | {'il', 'awl', 'sfc'}
+    for block in fences(raw):
+        if block['lang'] not in textual:
+            continue
+        lines, lexical_errors = lex_lines(block['text'])
+        for message in lexical_errors:
+            errors.append(f"围栏 L{block['line']}: {message}")
+        for offset, line in enumerate(lines, 1):
+            if not line['mask'].strip():
+                continue
+            end = len(line['mask'].rstrip())
+            notes = [note for pos, note in line['comments'] if pos >= end]
+            parsed = [ai_annotation(note) for note in notes]
+            valid = [payload for state, payload in parsed if state == 'ok' and payload]
+            label = f"L{block['line'] + offset} 默认逐行注释"
+            if not valid:
+                errors.append(label + '缺失：须在完整原行后追加非空 // AI: 业务短句')
+            else:
+                for payload in valid:
+                    if AI_MARKER_VARIANT.match(payload):
+                        errors.append(label + '重复 AI 标记')
+                    elif problem := low_value(payload, line['source'][:end]):
+                        errors.append(label + ' ' + problem)
+    return list(dict.fromkeys(errors))
 
 
 def coverage_summary(block: dict) -> str:
@@ -376,12 +488,18 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("documents", type=Path, nargs="+")
     ap.add_argument("--comment-review", type=Path, help="作者逐块语义审查 JSON；只用于单份文档")
     ap.add_argument("--final", action="store_true", help="要求全部块语义审查完成且没有未解决问题")
-    ap.add_argument("--require-every-line", action="store_true", help="要求 PLC 围栏内每条非空代码行（包括纯闭合行）有行内注释")
-    ap.add_argument("--require-condition-ai", action="store_true", help="要求 ST/SCL 的 IF/ELSIF/ELSE 及跨行条件逐行有 // AI: 尾注")
+    ap.add_argument("--require-every-line", action="store_true", help="兼容旧调用：默认已是逐行注释，本开关不改变结论")
+    ap.add_argument("--original-source", action="store_true", help="仅当用户当次明确要求原样源码或归档时使用；不要求新增注释")
+    ap.add_argument("--legacy-selective", action="store_true", help="仅复核历史选择性注释夹具；日常交付不得使用")
+    ap.add_argument("--require-condition-ai", action="store_true", help="额外断言条件行尾注存在（默认逐行注释已覆盖）")
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args(argv)
     if args.comment_review and len(args.documents) != 1:
         ap.error("--comment-review 只接受一份文档")
+    if args.original_source and (args.require_every_line or args.legacy_selective or args.require_condition_ai):
+        ap.error("原样源码模式与逐行注释要求互斥，不能同时声明")
+    if args.legacy_selective and args.require_every_line:
+        ap.error("历史选择性注释模式与逐行注释要求互斥")
     reports = []
     for path in args.documents:
         try:
@@ -390,12 +508,18 @@ def main(argv: list[str] | None = None) -> int:
         except (OSError, UnicodeError) as exc:
             reports.append({"path": str(path), "blocks": [], "errors": [str(exc)]})
             continue
-        report = check_text(raw)
-        if args.require_condition_ai:
+        report = check_text(raw, require_units=not args.original_source)
+        if args.original_source:
+            report["mode"] = "original-source"
+        elif args.legacy_selective:
+            report["mode"] = "legacy-selective"
+        else:
+            report["mode"] = "default-annotated"
+            report["errors"] += check_default_annotations(raw)
+        if args.require_condition_ai and not args.original_source:
             report["errors"] += check_condition_ai(raw)
-        if args.require_every_line:
-            report["errors"] += check_every_code_line(raw)
         report["errors"] += check_review(raw, report["blocks"], args.comment_review, args.final, hashlib.sha256(data).hexdigest())
+        report["errors"] = list(dict.fromkeys(report["errors"]))
         report.update(path=str(path), semantic_review="recorded" if report["blocks"] and args.comment_review and not report["errors"] else "pending")
         reports.append(report)
     if args.json:

@@ -239,7 +239,7 @@
     {
       "id": "FB@3.0",
       "path": "references/template-mfb-xml.md",
-      "view": "markdown-fences",
+      "view": "marked-body",
       "headings": [
         [
           1,
@@ -287,7 +287,7 @@
     {
       "id": "ST@3.0",
       "path": "references/template-st-xml-framework.md",
-      "view": "markdown-fences",
+      "view": "marked-body",
       "headings": [
         [
           1,
@@ -377,7 +377,7 @@
     {
       "id": "STATE@3.0",
       "path": "references/template-state-machine.md",
-      "view": "markdown-fences",
+      "view": "marked-body",
       "headings": [
         [
           1,
@@ -424,7 +424,7 @@
     {
       "id": "INTERFACE@3.0",
       "path": "references/template-interface-instances.md",
-      "view": "markdown-fences",
+      "view": "marked-body",
       "headings": [
         [
           1,
@@ -478,7 +478,7 @@
     {
       "id": "FLOW@3.0",
       "path": "references/process-and-signal-flow.md",
-      "view": "markdown-fences",
+      "view": "marked-body",
       "headings": [
         [
           1,
@@ -808,7 +808,7 @@
       "id": "CODE@1.0",
       "path": "templates/code-explanation.md",
       "authority": "references/local-code-explanation.md",
-      "view": "markdown-fences",
+      "view": "marked-body",
       "headings": [
         [
           1,
@@ -877,6 +877,7 @@
         "> 讲解深度：",
         "> 讲解版式：块级",
         "> 模块编号：",
+        "**控制目标与范围**：",
         "**一句话说清**：",
         "**功能定位**：",
         "**代码职责**：",
@@ -892,7 +893,72 @@
         "**交接要点**：",
         "**批判性审查**：",
         "**验证状态**："
-      ]
+      ],
+      "authority_spec": {
+        "view": "marked-body",
+        "headings": [
+          [
+            1,
+            "<对象与范围>"
+          ],
+          [
+            2,
+            "整体功能与关键变量"
+          ],
+          [
+            3,
+            "M01 <本段名称>"
+          ],
+          [
+            4,
+            "1. 功能定位与执行条件"
+          ],
+          [
+            4,
+            "2. 源码"
+          ],
+          [
+            4,
+            "3. 代码块整体讲解"
+          ],
+          [
+            4,
+            "4. 形象示例"
+          ],
+          [
+            4,
+            "5. 程序交互与段间交接"
+          ]
+        ],
+        "fields": [
+          "> 工程：",
+          "> 讲解深度：",
+          "> 讲解版式：块级",
+          "> 模块编号：",
+          "**控制目标与范围**：",
+          "**一句话说清**：",
+          "**功能定位**：",
+          "**代码职责**：",
+          "**设计依据**：",
+          "**来源定位**：",
+          "**处理过程**：",
+          "**关键逻辑**：",
+          "**写法好处**：",
+          "**状态变化**：",
+          "**场景设定**：",
+          "**初始状态**：",
+          "**理解要点**：",
+          "**交接要点**：",
+          "**批判性审查**：",
+          "**验证状态**："
+        ],
+        "tables": [
+          ["变量", "数据类型", "方向", "含义", "谁写谁读", "证据等级"],
+          ["进入条件", "成立时", "不成立时", "依据"],
+          ["阶段/执行", "输入与原状态", "本段处理", "执行结果"],
+          ["关系", "来源", "目标", "关联变量", "实际作用"]
+        ]
+      }
     },
     {
       "id": "NAV@1.0",
@@ -983,7 +1049,41 @@
           "状态"
         ]
       ],
-      "fields": []
+      "fields": [],
+      "authority_spec": {
+        "view": "body",
+        "headings": [
+          [
+            1,
+            "复杂工程学习导航"
+          ],
+          [
+            2,
+            "1. 先盘点输入"
+          ],
+          [
+            2,
+            "2. 建立一页总览与结构地图"
+          ],
+          [
+            2,
+            "3. 展示可选择的讲解对象"
+          ],
+          [
+            2,
+            "4. 等待用户选择"
+          ],
+          [
+            2,
+            "5. 进入标准讲解"
+          ],
+          [
+            2,
+            "6. 交付与继续学习"
+          ]
+        ],
+        "tables": [["编号", "对象/范围", "可见证据", "依赖或上下文", "状态"]]
+      }
     },
     {
       "id": "BOOKSET@1.0",

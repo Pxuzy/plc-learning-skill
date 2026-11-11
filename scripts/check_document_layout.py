@@ -34,6 +34,12 @@ def check(path: Path) -> tuple[list[str], list[str]]:
     text = path.read_text(encoding="utf-8")
     lines = body_view(text).splitlines()
     errors: list[str] = fence_diagnostics(text)
+    from markdown_syntax import inspect_markdown
+    try:
+        errors.extend(f"L{x['line']} {x['rule']}: {x['detail']}" for x in
+                      inspect_markdown(text, path, check_links=False)['issues'])
+    except RuntimeError as exc:
+        errors.append(str(exc))
     warnings: list[str] = []
 
     # Fence pairing and language labels use the shared CommonMark parser.
@@ -67,7 +73,19 @@ def check(path: Path) -> tuple[list[str], list[str]]:
     for ln in lines:
         m = re.match(r"^##\s+([一二三四五六七八九十]+)、", ln)
         if m:
-            nums.append(CN_NUM.index(m.group(1)[0]) + 1 if m.group(1)[0] in CN_NUM else None)
+            token=m.group(1)
+            if '十' in token:
+                tens,units=token.split('十',1)
+                if len(tens)>1 or len(units)>1:
+                    errors.append(f"无法识别章节编号：{token}")
+                    continue
+                number=(CN_NUM.index(tens)+1 if tens else 1)*10+(CN_NUM.index(units)+1 if units else 0)
+            elif len(token)==1:
+                number=CN_NUM.index(token)+1
+            else:
+                errors.append(f"无法识别章节编号：{token}")
+                continue
+            nums.append(number)
     nums = [n for n in nums if n]
     for a, b in zip(nums, nums[1:]):
         if b <= a:
@@ -80,7 +98,8 @@ def check(path: Path) -> tuple[list[str], list[str]]:
             block.append(ln.strip())
             continue
         if block:
-            cols = {len(r.strip("|").split("|")) for r in block if not SEPARATOR.match(r)}
+            from markdown_syntax import cells as table_cells
+            cols = {len(table_cells(r)) for r in block if not SEPARATOR.match(r)}
             if len(cols) > 1:
                 errors.append(f"同一表格列数不一致：{sorted(cols)}")
             widest = max(cols) if cols else 0

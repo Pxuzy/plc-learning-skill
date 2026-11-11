@@ -13,7 +13,7 @@ python3 -B evals/run.py             # 全部跑一遍
 
 深讲契约测试只断言六槽位、证据缺口与坏最小 Markdown 拒绝，样例写在该测试文件内，不依赖任何用户工程源码或夹具目录；标签齐全不等于讲解正确，契约通过也不等于任意模型实际生成质量合格。评估教学效果须用同一题目实际生成并人工审阅必要性推导、代码覆盖和跨扫描反例。
 
-整册逐行注释请求必须运行 `python3 -B scripts/check_plc_comments.py <文档.md> --require-every-line`，并独立记录普通质量门禁结果。缺注释、低价值与重复错误分开核对；默认局部 B 不追加注释。回归夹具均为合成片段，不依赖用户归档。
+教学交付默认运行 `python3 -B scripts/check_plc_comments.py <文档.md>`（默认逐行；`--require-every-line` 为兼容别名），并独立记录普通质量门禁结果。`--legacy-selective` 只用于历史夹具的选择性审查，`--original-source` 只在当次明确要求原样源码时使用。缺注释、低价值与重复错误分开核对；默认局部 B 交付追加注释版，新生成 ST/SCL 文档另跑 `--require-condition-ai`；长手册也可通过 `validate_handbook.py --require-condition-ai` 启用。回归夹具均为合成片段，不依赖用户归档。
 
 离线脚本只使用 Python 标准库；不得因 Python 版本差异跳过、降级或改写校验结论。工具通过不表示格式解析或产品支持，也不代表 PLC 语义、编译或现场行为已验证。
 
@@ -30,11 +30,11 @@ python3 -B evals/run.py             # 全部跑一遍
 | `test_handbook_validator.py` | 按适用性校验、模板组合、目录锚点、源码与安全边界正反例 |
 | `test_comment_quality.py` | 全文 PLC 行内覆盖、复述/空话/重复、字符串边界、库内正例和最终逐块审查记录；严格逐行模式覆盖闭合行、空尾注、注释后代码及跨行条件/调用；不证明任意业务语义 |
 | `test_template_index.py` | 模板 ID、版本、组合对称性与路由正反例 |
-| `test_code_integrity.py` | 代码块与源程序逐行对账 |
+| `test_code_integrity.py` | 代码块与源程序逐行对账，拒绝整块交换和同单元分片倒序 |
 | `test_make_manifest.py` / `test_diff_export.py` | 源清单与版本差异 |
 | `test_smc2_archive.py` | SMC2 归档清点与路径穿越防护 |
 | `test_survey_program.py` | 程序统计与跨单元写入 |
-| `test_st_rendering.py` | CommonMark 围栏边界、嵌套短示例、ST 标签与行号诊断 |
+| `test_st_rendering.py` | CommonMark 围栏边界、嵌套短示例、闭合围栏独立成行与实际行号诊断 |
 | `test_reference_flatness.py` | 参考文件均被索引、无悬空链接 |
 | `test_offline_runner.py` | runner 只跑本地测试 |
 | `test_local_explanation_contract.py` | B 两份骨架填实结果、字段/表列、执行行数、交接与结束标记正反例 |

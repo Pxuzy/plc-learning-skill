@@ -111,6 +111,14 @@ def body_view(raw: str) -> str:
 def fence_diagnostics(raw: str, languages: set[str] = PLC_LANGS) -> list[str]:
     blocks = parse_fences(raw)
     errors = [f"L{b['line']} 围栏未闭合，无法证明后续源码已覆盖" for b in blocks if not b['closed']]
+    for block in blocks:
+        if block['lang'] not in languages:
+            continue
+        suffix = re.compile(r'^(.*?\S)[ \t]*' + re.escape(block['delimiter'][0])
+                            + '{' + str(len(block['delimiter'])) + r',}[ \t]*$')
+        for offset, source in enumerate(block['source_lines'], 1):
+            if suffix.fullmatch(source) and not re.fullmatch(r'\s*[`~]+\s*', source):
+                errors.append(f"L{block['line'] + offset} 闭合围栏必须独立一行，不能拼在源码末尾")
     openers = {b['line'] for b in blocks}
     for number, line in enumerate(raw.splitlines(), 1):
         if number in openers:

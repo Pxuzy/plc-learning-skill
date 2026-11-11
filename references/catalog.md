@@ -12,12 +12,12 @@
 |---|---|---|---|---|
 | PLC-SAFE-READONLY | 全部讲解；`references/template-index.md` 的只读边界；保护块处理见 workflow | HBK、FB、ST、STATE、INTERFACE、FLOW；`scripts/validate_handbook.py` | `evals/test_handbook_validator.py#test_read_only_safety_boundary_is_allowed` / `evals/test_handbook_validator.py#test_positive_unsafe_recommendations_fail`；保护块另见 Case 18 | 当前 |
 | PLC-EVIDENCE-LEVELS | 结构与手册结论；`references/structure-mapping.md` 的四级证据；HBK 仅定义呈现字段 | HBK、MAP；`scripts/validate_structure_map.py` | `evals/test_structure_map.py#test_sample_passes` / `evals/test_structure_map.py#test_relation_table_requires_confidence_column`；真假证据需人工核对 | 当前 |
-| PLC-ST-LAYERS | 可读 ST 的层级与阶段；`references/code-reading.md` | ST、HBK；`scripts/validate_handbook.py` 检查块级五部分、关键变量前置与正文实质内容；行内注释门禁另行覆盖执行单元 | `evals/test_handbook.py#test_skill_st_contract_kept` / `evals/test_handbook_validator.py#test_missing_two_pass_fails`；完整分层按 Case 8、21 人工验收 | 当前 |
+| PLC-ST-LAYERS | 可读 ST 的层级与阶段；`references/code-reading.md` | ST、HBK；`scripts/validate_handbook.py` 检查块级五部分、关键变量前置与正文实质内容；行内注释门禁另行覆盖每条非空源行（含闭合行） | `evals/test_handbook.py#test_skill_st_contract_kept` / `evals/test_handbook_validator.py#test_missing_two_pass_fails`；完整分层按 Case 8、21 人工验收 | 当前 |
 | PLC-CODE-SOURCE | 源码保真与来源标注；`references/code-reading.md` | HBK、ST、FB；`scripts/check_code_integrity.py`、`scripts/validate_handbook.py` | `evals/test_handbook_validator.py#test_sample_handbook_passes` / `evals/test_handbook_validator.py#test_missing_src_marker_fails`；逐字对账另跑 test_code_integrity | 当前 |
-| PLC-COMMENT-VALUE | 完整手册/教学重建及明确要求的教学注释版：执行行须简短业务说明，完整单行单赋值 IF 可共用一句；用户要求整册逐行注释时必须使用 `check_plc_comments.py --require-every-line` 强制每条非空执行/结构行含有效尾注（含闭合行），空白/纯注释行除外；局部 B 默认原码并按前置风格参考追加简洁业务尾注，要求原样源码时不追加；`references/comment-quality.md` | 各源码专题；`scripts/check_plc_comments.py`、`scripts/validate_handbook.py`；最终须逐块语义审查 | `evals/test_comment_quality.py#test_require_every_line_flag_rejects_uncommented_closure_lines` / `evals/test_comment_quality.py#test_handbook_requires_inline_comment_on_each_executable_line`；任意语义正确性须另行核对 | 当前 |
+| PLC-COMMENT-VALUE | 完整手册/教学重建及局部 B 同口径：默认对每条非空源行（含结构闭合行）追加简短业务尾注，不需要用户再次要求逐行；完整单行单赋值 IF 可共用一句；`check_plc_comments.py` 默认逐行，`--require-every-line` 为兼容别名，`--legacy-selective` 仅历史夹具审查，`--original-source` 仅当次明确原样源码；`references/comment-quality.md` | 各源码专题；`scripts/check_plc_comments.py`、`scripts/validate_handbook.py`；最终须逐块语义审查 | `evals/test_comment_quality.py#test_require_every_line_flag_rejects_uncommented_closure_lines` / `evals/test_comment_quality.py#test_handbook_requires_inline_comment_on_each_executable_line`；任意语义正确性须另行核对 | 当前 |
 | PLC-SEGMENT-DELIVERY | 长任务自动盘点全部范围、逻辑分段、连续推进、不等逐段确认，跟踪源码覆盖与逐段教学质量双状态，质量未过不得记已讲解，最终合并 Markdown；不得截断源码 | `SKILL.md`、`references/workflow.md` | `evals/test_long_text_delivery.py`、`evals/test_long_text_quality_gate.py`；长文行为见 Case 14 | 当前 |
 | PLC-KEY-VAR-TYPES | 关键变量表必须含数据类型列；数组写范围与元素类型、结构体写到成员层；允许命名＋注释＋读写辅助推断用途，不按前缀确认类型/作用域；类型影响结论须点明 | `references/handbook-guide.md` | `evals/test_key_var_types.py#test_type_column_required` / `evals/test_key_var_types.py#test_prefix_guessing_forbidden` | 当前 |
-| PLC-LAYOUT-PLAIN | 模块编号文首声明且统一；章只放工程内容、模块一律 H3、小节 H4；模块顺序固定；每模块一句“一句话说清”，术语白话、人话先于代码依据 | `references/handbook-guide.md` | `evals/test_layout_plain.py#test_modules_are_h3_not_peer_of_chapters` / `evals/test_layout_plain.py#test_each_module_opens_with_plain_sentence` | 当前 |
+| PLC-LAYOUT-PLAIN | 模块编号文首声明且统一；章只放工程内容、单对象模块 H3、小节 H4；多工位工位 H3、模块 H4、小节 H5；模块顺序固定；每模块一句“一句话说清”，术语白话、人话先于代码依据 | `references/handbook-guide.md` | `evals/test_layout_plain.py#test_modules_are_h3_not_peer_of_chapters` / `evals/test_layout_plain.py#test_each_module_opens_with_plain_sentence` | 当前 |
 | PLC-TITLE-EMOJI | 模块标题表情必填，同类标题固定一组，整篇无表情算版式缺陷；代码与字段内禁放 | `references/handbook-guide.md`、`references/template-handbook.md` | `evals/test_emoji.py#test_rule_requires_title_emoji` / `evals/test_emoji.py#test_rule_no_longer_says_optional` | 当前 |
 | PLC-DELIVERY-FORM | 详细讲解与手册最终交付 `.md`；长文可先在聊天自动分段连续完成，再合并成单文件 | `SKILL.md`、`references/handbook-guide.md` | `evals/test_md_delivery.py` / `evals/test_long_text_delivery.py` | 当前 |
 | PLC-TEMPLATE-COMPOSE | ID、组合、版本与降级；`references/template-index.md` | 全部已注册模板；`scripts/validate_template_index.py`、`scripts/validate_handbook.py` | `evals/test_handbook_validator.py#test_registered_template_composition_is_accepted` / `evals/test_handbook_validator.py#test_unregistered_template_combination_fails` | 当前 |
@@ -25,8 +25,8 @@
 | PLC-SOURCE-DEEP-TEACHING | 真实源码的初学者逐块讲解；[teaching-from-scratch 的源码深讲模式](teaching-from-scratch.md#源码深讲模式读真实工程时加载) | HBK+ST；`evals/test_deep_teaching_contract.py`；格式/围栏检查 | 六槽位、缺口、证据和坏最小 Markdown 拒绝 / 只有代码或变量表而没有因果与扫描变化 | 当前 |
 | PLC-ORDER-SCOPE | 跨块执行顺序与下标保护范围；`references/teaching-from-scratch.md`（源码深讲的条件式时序）、`references/structure-mapping.md`（证据分级） | HBK+ST；`scripts/validate_handbook.py`；静态检查只覆盖可判定部分 | `evals/test_deep_teaching_contract.py#test_reference_requires_six_source_explanation_slots_and_evidence_gaps` / `evals/test_deep_teaching_contract.py#test_slot_label_alone_is_not_an_explanation`；Task/POU/实参调用顺序仍须人工核对 | 当前 |
 | PLC-BLOCK-GRANULARITY | 大闭合结构分块：外层骨架 → 内部子块逐段 → 整体汇总；子块边界取闭合结构或语义单元，不切断表达式、单条赋值与原注释；`SKILL.md` 领域底线、`references/local-code-explanation.md` | HBK、ST；`scripts/block_layout.py`、`scripts/validate_handbook.py` | `evals/test_block_layout.py#test_single_closed_structure_over_limit_with_branch_navigation_passes` / `evals/test_block_layout.py#test_many_statements_over_limit_still_rejected` | 当前 |
-| PLC-COMMENT-DEFAULT | B 局部与长手册默认追加简洁业务尾注（` // AI: `）；说明对象、动作、结果；IF/ELSIF、ELSE 选路及跨行条件必须逐行 ` // AI: `，不只注释赋值；空白与纯注释行不补；用户要求原样时不追加；`references/inline-comment-style.md`、`references/local-code-explanation.md` | HBK、ST；`scripts/check_plc_comments.py`、`scripts/validate_handbook.py` | `evals/test_concise_comments.py#test_complete_single_action_if_accepts_one_business_comment` / `evals/test_comment_quality.py#test_handbook_requires_inline_comment_on_each_executable_line` | 当前 |
-| PLC-COMMENT-PRECEDENCE | 注释密度与表达以用户当次要求及其指定模板为准，技能默认值不得覆盖；逐行请求不得降级，主要改注释时不重写正文；`references/inline-comment-style.md`、`references/comment-quality.md` | HBK、ST；`scripts/check_plc_comments.py` | `evals/test_comment_quality.py#test_require_every_line_quality_remains_distinct_and_opt_in` / `evals/test_concise_comments.py#test_plain_append_checks_the_new_comment_without_required_prefix` | 当前 |
+| PLC-COMMENT-DEFAULT | B 局部与长手册默认逐行追加简洁业务尾注（` // AI: `，含结构闭合行）；说明对象、动作、结果；IF/ELSIF、ELSE 选路及跨行条件必须逐行 ` // AI: `，不只注释赋值；空白与纯注释行不补；仅当次明确要求原样源码/仅归档时不追加；`references/inline-comment-style.md`、`references/local-code-explanation.md` | HBK、ST；`scripts/check_plc_comments.py`、`scripts/validate_handbook.py` | `evals/test_concise_comments.py#test_complete_single_action_if_accepts_one_business_comment` / `evals/test_comment_quality.py#test_handbook_requires_inline_comment_on_each_executable_line` | 当前 |
+| PLC-COMMENT-PRECEDENCE | 注释表达以用户当次要求及其指定模板为准；默认密度为逐行，不因用户未重申而降级为选点，原样源码/仅归档是唯一免注例外；主要改注释时不重写正文；`references/inline-comment-style.md`、`references/comment-quality.md` | HBK、ST；`scripts/check_plc_comments.py` | `evals/test_comment_quality.py#test_require_every_line_quality_remains_distinct_and_opt_in` / `evals/test_concise_comments.py#test_plain_append_checks_the_new_comment_without_required_prefix` | 当前 |
 | PLC-FB-STATE | FB 保持语义分三层：同实例调用间保持属语言语义；首次初值与初始化未见即未知；掉电/下载/RETAIN 未给资料即未知；不得以②③未知否定①；`SKILL.md` 领域底线、`references/code-reading.md` | HBK、ST；`scripts/validate_handbook.py` | `evals/test_first_principles_contract.py#test_short_no_else_example_derives_state_and_two_scans` / `evals/test_handbook_validator.py#test_readable_code_example_requires_initial_state_sequence_and_outcome` | 当前 |
 | PLC-TEMPLATE-ADDITIVE | 用户要求在既有模板上增加目录/分章/编号/分块时，原栏目、顺序、变量表、四字段与审查状态逐字保留，新导航放外层或可选槽位；不得改名、合并或重写骨架；`references/template-index.md` | 全部已注册模板；`scripts/validate_template_index.py`、`scripts/validate_handbook.py` | `evals/test_handbook.py#test_template_registry_is_the_single_routing_and_version_source` / `evals/test_handbook_validator.py#test_registered_template_composition_is_accepted` | 当前 |
 
@@ -37,6 +37,7 @@
 | 资产 | 职责 | 加载时机 / 场景 | 权威规则 / 验证器 | 状态 / 适用范围 |
 |---|---|---|---|---|
 | `references/catalog.md` | [资产职责与规则追踪导航](catalog.md) | 查找资产、规则来源、回归证据 | `scripts/validate_skill.py`；`evals/test_catalog.py` | 规范 |
+| `references/core-requirements.md` | [已确认的十一条核心强规则：源码保真、默认逐行注释、五部分不缩水、因果讲解、示例交接、分项验收与修订纪律](core-requirements.md) | 交付前核对；规则冲突时以此为准 | R1–R11；`evals/test_default_annotations.py`、`scripts/check_plc_comments.py` | 契约 |
 | `references/template-index.md` | [模板 ID、版本、路由、组合唯一注册表](template-index.md) | 每次选择或组合模板 | `scripts/validate_template_index.py` | 注册 |
 | `references/handbook-guide.md` | [手册章节、深度、三层结构、模块五部分、关键变量前置与版式](handbook-guide.md) | 写手册与模块说明 | HBK；`scripts/validate_handbook.py`、`scripts/check_document_layout.py` | 规范 |
 | `references/workflow.md` | [生命周期、复杂框架分阶段学习、覆盖状态、分批、完成标准与维护细则](workflow.md) | 复杂框架学习、交付验收、维护技能 | PLC-DELIVERY-VERIFY；`scripts/validate_handbook.py` | 规范 |
@@ -55,7 +56,7 @@
 | `evals/fixtures/complex-st/FB_AxisHandshake.st` | 虚构轴动作握手层：MC_* 以伪接口声明，指令/执行/完成/故障四态，完成用脉冲 | 运动接口边界讲解与静态检查 | `scripts/check_st_logic.py`、`evals/test_st_logic_checker.py` | 合成夹具 / 非现场工程 |
 | `evals/fixtures/local-explanation/ton-state.md` | 与虚构 ST 源对应的填实 B 深讲稿及范围映射 | 离线验证源保真与教学轨迹 | `evals/test_local_explanation_cli.py`、`evals/test_local_teaching_review.py` | 测试夹具 / 非现场工程 |
 | `references/quality-checklist.md` | [讲解质量检查清单：事实、必要性、单因素反例、连续轨迹与证据边界；格式和语义分栏](quality-checklist.md) | 生成讲解后自查，或委托 AI 审查质量 | 与 HBK@3.0 块级版式配套；第三部分对应 `evals/test_block_layout.py` 的字段检查 | 检查清单 |
-| `references/comment-quality.md` | [注释价值、条件分组、意图与反例](comment-quality.md) | 完整手册/教学重建、明确要求教学注释版，或审查已追加注释；局部 B 依局部模板采用简洁业务尾注，用户要求原样时不追加 | PLC-COMMENT-VALUE；`scripts/validate_handbook.py` | 规范 |
+| `references/comment-quality.md` | [注释价值、条件分组、意图与反例](comment-quality.md) | 完整手册/教学重建或审查已追加注释；局部 B 同口径逐行短尾注，仅当次明确原样源码/仅归档不追加 | PLC-COMMENT-VALUE；`scripts/validate_handbook.py` | 规范 |
 | `references/inline-comment-style.md` | [源码内逐行注释的业务短句风格](inline-comment-style.md) | 每次写注释前加载（含命名辅助推断），恢复时重载；表达口径优先于旧默认删除测试 | PLC-COMMENT-PRECEDENCE | 规范 |
 | `references/inline-comment-examples.md` | [11组自造行内注释案例](inline-comment-examples.md) | 与风格规则共同加载，校准条件、赋值、循环、调用、状态与原注释追加 | inline-comment-style | 教学合成；非工程事实 |
 | `references/teaching-from-scratch.md` | [教学重建与真实源码深讲的分工、六槽位和协议验收](teaching-from-scratch.md) | 从零带练或初学者需要读懂真实源码 | PLC-SOURCE-DEEP-TEACHING；`evals/test_deep_teaching_contract.py` | 规范 |
@@ -104,7 +105,7 @@
 | `scripts/diff_export.py` | 比较导出单元新增、删除与修改 | 改版后增量讲解 | workflow；`evals/test_diff_export.py` | CLI |
 | `scripts/make_manifest.py` | 建源码范围与摘要清单 | 有完整可检索导出，需要逐字对账 | PLC-CODE-SOURCE；`evals/test_make_manifest.py` | CLI |
 | `scripts/source_annotations.py` | 共享逐块来源标记语法与邻接绑定 | 修改源码来源契约时 | `references/comment-quality.md`；`evals/test_audit_contracts.py` | 内部共享 |
-| `scripts/check_code_integrity.py` | 六项源码完整性与覆盖核对 | 有匹配源文本与 manifest；最终加 --final | PLC-CODE-SOURCE；`evals/test_code_integrity.py` | CLI |
+| `scripts/check_code_integrity.py` | 源码完整性、覆盖与代码块先后顺序核对 | 有匹配源文本与 manifest；代码块按源行递增；最终加 --final | PLC-CODE-SOURCE；`evals/test_code_integrity.py` | CLI |
 | `scripts/check_markdown_format.py` | 表格、围栏、元信息等格式检查 | 所有成品文档 | handbook-guide；与手册/结构回归配套人工验收 | CLI |
 | `scripts/check_document_layout.py` | 标题、顺序、可读性与模块版式 | 成品版式检查 | handbook-guide；`evals/test_document_layout.py` | CLI |
 | `scripts/markdown_fences.py` | CommonMark 围栏与正文/源码共享视图 | 修改或诊断 Markdown 围栏行为 | `scripts/check_markdown_format.py`、`scripts/check_document_layout.py`、`scripts/check_plc_comments.py`、`scripts/validate_handbook.py`、`scripts/validate_skill.py`；`evals/test_st_rendering.py` | 共享实现 |
@@ -117,8 +118,10 @@
 | `evals/test_one_page_prompt.py` | [一页模板契约回归](one-page-prompt.md)：源码保真为第一条硬规则、规则数 ≤6、同一变量字段与五部分骨架、长结构不机械拆断、超限指示不得暗示删除 | 弱模型漏段或截短代码时 | `references/one-page-prompt.md` | 回归 |
 | `scripts/validate_handbook.py` | 适用章节、模板组合、模块、安全与来源门禁 | 手册交付前；完整稿加 --final | HBK 与专题；`evals/test_handbook_validator.py` | CLI |
 | `scripts/legacy_handbook_validator.py` | 保留旧 `--source/--handbook` 契约：五部分顺序、源码完整覆盖与不回声；仅供旧回归使用，不替代新默认 CLI | 运行 evals/tests/test_handbook_validator.py 或核对历史 CLI 时 | `evals/tests/test_handbook_validator.py` | 兼容 / 维护 |
-| `scripts/check_plc_comments.py` | 全文 PLC 围栏逐单元覆盖、可选严格逐行尾注、有限低价值模式及审查记录检查 | 教学注释文档；整册逐行请求加 --require-every-line，最终加 --final 与 --comment-review | PLC-COMMENT-VALUE；`evals/test_comment_quality.py` | 规范；非语义证明 |
-| `scripts/validate_template_format.py` | 模板资产格式检查：围栏内骨架、标题、字段、表头、兼容字段映射及登记覆盖 | 改模板后；不证明PLC语义 | `references/template-index.md`、`assets/template-format-contracts.json` | CLI / 离线 |
+| `scripts/check_plc_comments.py` | 全文 PLC 围栏逐单元覆盖、默认逐行尾注、可选条件 AI 尾注（--require-condition-ai）、有限低价值模式及审查记录检查；--legacy-selective 仅历史夹具审查，--original-source 仅当次原样源码 | 教学注释文档；默认逐行（--require-every-line 为兼容别名），最终加 --final 与 --comment-review | PLC-COMMENT-VALUE；`evals/test_comment_quality.py` | 规范；非语义证明 |
+| `scripts/requirements-markdown.txt` | 严格 Markdown 渲染检查依赖清单 | 使用 pip 安装一次；缺依赖不放行 | markdown-it-py 3.x / 4.x | 运行依赖 |
+| `scripts/markdown_syntax.py` | CommonMark 与管道表格的实际渲染节点、逐表列数、空行、锚点与引用链接检查 | 格式 CLI 与严格技能校验自动调用；依赖 markdown-it-py | `evals/test_markdown_syntax.py` | CLI / 确定性 |
+| `scripts/validate_template_format.py` | 模板资产格式检查：可渲染骨架、标题、字段、表头、兼容字段映射及登记覆盖 | 改模板后；不证明PLC语义 | `references/template-index.md`、`assets/template-format-contracts.json` | CLI / 离线 |
 | `scripts/validate_template_index.py` | 注册字段、ID、版本、路由与组合对称性 | 改模板或技能后的验证 | template-index；`evals/test_template_index.py` | CLI |
 | `scripts/check_st_logic.py` | ST 静态逻辑检查：块/条件配对、CASE 分支覆盖、状态集与转移表一致性、常量越界、死代码与声明卫生；`--min-severity`、`--json`、`--quiet` | 复杂 ST 或层次状态机出稿前；只查可确定结构，不证明语义 | `evals/test_st_logic_checker.py`；夹具见上表 | CLI / 当前 |
 | `scripts/git_privacy_gate.py` | 真实暂存树、提交消息、全历史与本地对象库的隐私检查；推送边界失败即阻断 | 提交前、推送前及首次发布前审计 | workflow 版本与 Git 管理；`evals/test_git_privacy_gate.py` | CLI / 无网络 |
@@ -128,8 +131,11 @@
 
 ## Evals
 
+| 资产 | 职责 | 加载时机 / 场景 | 权威规则 / 验证器 | 状态 / 适用范围 |
+|---|---|---|---|---|
+| `evals/test_markdown_syntax.py` | 逐表渲染、缺表头/分隔行、HTML吞表、列截断/补齐、转义竖线、空行、锚点与依赖缺失反例 | 修改格式门禁后 | `scripts/markdown_syntax.py`、check_markdown_format | 离线 / 实际CLI |
 | `evals/test_delivery_boundaries.py` | 图形分支、源码导航与分发验收边界 | 修改局部交付规则后 | `references/local-code-explanation.md`、workflow | 静态契约 |
-| `evals/test_runtime_package.py` | 独立运行包正例与缺运行资产必拒 | 修改运行包检查范围后 | `scripts/validate_skill.py` | 回归 |
+| `evals/test_runtime_package.py` | 独立运行包正例、缺运行资产及正文/模板死链必拒（含标题/尖括号写法） | 修改运行包检查范围后 | `scripts/validate_skill.py` | 回归 |
 | `evals/test_effective_hook_chain.py` | 无状态有效钩子链诊断入口 | worktree 临时委托检查 | `scripts/hooks.py` | 回归 / 维护 |
 | `evals/test_reviewed_content_consistency.py` | 默认注释、方向、语言、层级与原生分组一致性 | 修改审定内容后 | 讲解规则与模板 | 静态契约 |
 | `evals/test_template_authority.py` | 单一模板注册与兼容呈现、路由 | 修改模板注册后 | 模板索引与 explain-code | 静态契约 |
@@ -157,11 +163,12 @@
 | `evals/test_holding_semantics.py` | 保持/复位反例不得教错：条件失效只跳过写入，不等于关闭输出；锁定替代直接赋值反例与独立复位路径 | 修改保持/复位教学示例后 | `references/handbook-guide.md`、`references/code-reading.md` | 回归 |
 | `evals/test_handbook.py` | 手册默认交付、ST 契约、模板与规则存在性 | 入口或手册契约变化后 | HBK、ST、handbook-guide、workflow | 回归 |
 | `evals/test_handbook_validator.py` | 适用性、模块、安全、注释、来源、完成状态正反例 | 手册规则或校验器变化后 | `scripts/validate_handbook.py` | 回归 |
-| `evals/test_comment_quality.py` | 注释覆盖/价值、严格逐行尾注与闭合行、词法、库内样例、final 审查正反例 | 注释规则、样例或检查器变化后 | `scripts/check_plc_comments.py`、`scripts/validate_handbook.py` | 回归 |
-| `evals/test_concise_comments.py` | 完整单行单赋值 IF 的简洁注释及无前缀追加正反例；保留多动作、低价值与重复检查 | 简洁注释规则或检查器变化后 | `scripts/check_plc_comments.py` | 回归 |
+| `evals/test_comment_quality.py` | 注释覆盖/价值、默认逐行与闭合行尾注、词法、库内样例、final 审查正反例 | 注释规则、样例或检查器变化后 | `scripts/check_plc_comments.py`、`scripts/validate_handbook.py` | 回归 |
+| `evals/test_default_annotations.py` | 默认逐行注释契约：逐条删除尾注必被拒、空白/纯注释行豁免、原作者注释保留仍须补注、`--original-source` 与逐行互斥、局部与手册默认路径一致 | 修改注释默认或检查器参数后 | `references/core-requirements.md` R2/R3、`scripts/check_plc_comments.py` | 离线 / 实际CLI |
+| `evals/test_concise_comments.py` | 单行 IF、条件 AI 尾注及续行正反例；保留多动作、低价值与重复检查 | 简洁注释规则或检查器变化后 | `scripts/check_plc_comments.py` | 回归 |
 | `evals/test_template_format.py` | 模板格式CLI正反用例：正文层级、字段、表列、围栏、空节、登记覆盖与兼容映射 | 模板格式或检查器变化后 | `scripts/validate_template_format.py` | 离线 / 真实CLI |
 | `evals/test_template_index.py` | 模板注册、组合、路由与版本正反例 | 模板注册变化后 | `scripts/validate_template_index.py` | 回归 |
-| `evals/test_code_integrity.py` | 六项源码对账与范围正反例 | 源码引用或完整性规则变化后 | `scripts/check_code_integrity.py` | 回归 |
+| `evals/test_code_integrity.py` | 源码对账、范围与整块交换/单元内倒序正反例 | 源码引用或完整性规则变化后 | `scripts/check_code_integrity.py` | 回归 |
 | `evals/test_make_manifest.py` | 摘要、范围、重复与缺口 | 源清单生成变化后 | `scripts/make_manifest.py` | 回归 |
 | `evals/test_diff_export.py` | 新增、删除、改写、行位移差异 | 导出差异逻辑变化后 | `scripts/diff_export.py` | 回归 |
 | `evals/test_survey_program.py` | 程序计数、地址、调用与写入 | 统计逻辑变化后 | `scripts/survey_program.py` | 回归 |

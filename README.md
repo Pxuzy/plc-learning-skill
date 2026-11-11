@@ -34,6 +34,20 @@ Windows 上必须显式用 UTF-8 运行，否则默认代码页会让中文与�
 
 回归报告须区分环境限制、可复现的基线失败和改动引入的问题。Windows 账户缺少符号链接权限时，相关用例可能报 `WinError 1314`；应记录实际环境与用例结果，不把某次运行状态写成所有环境的既定失败，也不能把未执行项合并为「全部通过」。
 
+## Markdown 格式与渲染门禁
+
+格式以 CommonMark 加管道表格扩展为准；不以编辑器预览截图或「至少生成一张表」代替逐表验收。首次运行先安装解析器依赖：
+
+```bash
+python -m pip install -r scripts/requirements-markdown.txt
+python -B scripts/markdown_syntax.py .
+python -B scripts/check_markdown_format.py 讲解稿.md --strict --json
+```
+
+整包检查覆盖 `SKILL.md`、`README.md`、`CHANGELOG.md`、`references/**/*.md` 与 `templates/**/*.md`；测试负例、开发计划不混入交付格式验收。报告逐张列出已解析表格的起止行、列数与行数，并检查疑似表格是否遗漏，拒绝列截断/补空、正文被吞成表行、HTML 吞表、隐藏占位标签、标题/列表/围栏空行问题。单篇格式命令另核对本地链接、显式锚点和引用式链接。严格技能校验自动执行整包语法检查与既有本地链接检查；缺解析器会报错，不能当作通过。
+
+这是指定 Markdown 方言的确定性验收，不保证所有编辑器、Telegram 消息或专用插件的呈现完全相同；Mermaid 图形布局、外部网页可访问性和 PLC 语义需要各自验证。
+
 ## Git 约定
 
 - 主干分支 `main`，只做本地提交；推送、打标签、发布需要当前任务的明确授权。

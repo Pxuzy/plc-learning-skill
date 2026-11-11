@@ -114,7 +114,8 @@ class CatalogTests(unittest.TestCase):
         (root / "references/topic-probe.md").write_text("# 专题\n", encoding="utf-8")
         path = root / CATALOG
         path.write_text(path.read_text(encoding="utf-8") +
-                        "\n| `references/topic-probe.md` | [夹紧信号证据专题](topic-probe.md) | 追踪夹紧信号 | 人工 | 当前 |\n", encoding="utf-8")
+                        "\n| 资产 | 职责 | 加载时机 / 场景 | 权威规则 / 验证器 | 状态 / 适用范围 |\n|---|---|---|---|---|\n"
+                        "| `references/topic-probe.md` | [夹紧信号证据专题](topic-probe.md) | 追踪夹紧信号 | 人工 | 当前 |\n", encoding="utf-8")
         self.check(root, 0, "0 个错误，0 个警告")
 
     def test_catalog_symlink_cannot_cross_declared_directory_inside_root(self):

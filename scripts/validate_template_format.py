@@ -4,16 +4,94 @@ from __future__ import annotations
 import argparse
 import json
 import re
+from collections import Counter
 from pathlib import Path
-from markdown_fences import body_view, parse_fences
+from markdown_fences import body_view, parse_fences, fence_diagnostics
 from validate_template_index import table_rows, REGISTRY_HEADING, validate_text
 
 ROOT = Path(__file__).resolve().parents[1]
 
+# 与 scripts/validate_skill.py 的 is_emoji 同一码位集合，另含变体选择符。
+DECORATION = r'[\s\U0001F300-\U0001FAFF\u2600-\u27bf\u2b00-\u2bff\ufe0e\ufe0f]+$'
+FIELD_LABEL_RE = re.compile(r'^\*\*(.+?)\*\*\s*[：:]')
+QUOTE_LABEL_RE = re.compile(r'^>\s*([^：:]+)[：:]')
+
 
 def heading_text(text):
     """只忽略空白和结尾装饰表情，不用前缀匹配吞掉改名。"""
-    return re.sub(r'[\s\U0001F000-\U0001FFFF\u2600-\u27bf\ufe0f]+$', '', text)
+    from html import unescape
+    return re.sub(DECORATION, '', unescape(text))
+
+
+def field_label(field):
+    """契约字段归一为行首标签；块引用字段只比标签，不比占位值。"""
+    if field.startswith('> '):
+        return '> ' + re.split(r'[：:]', field[2:], 1)[0].strip() + '：'
+    return field
+
+
+def skeleton_labels(view):
+    """可复制骨架里行首的契约字段标签：`**字段**：` 与 `> 字段：`；正文夹叙的粗体不算。"""
+    labels = set()
+    for line in view.splitlines():
+        bold = FIELD_LABEL_RE.match(line)
+        if bold:
+            labels.add('**' + bold[1].strip() + '**：')
+            continue
+        quote = QUOTE_LABEL_RE.match(line)
+        if quote:
+            labels.add('> ' + quote[1].strip() + '：')
+    return labels
+
+
+def valid_authority_spec(spec):
+    """权威正文结构规格：view、非空headings，可选fields/tables。"""
+    if not isinstance(spec, dict) or spec.get('view') not in {'body', 'marked-body'}:
+        return False
+    headings = spec.get('headings')
+    if not isinstance(headings, list) or not headings:
+        return False
+    if not all(isinstance(h, list) and len(h) == 2 and isinstance(h[0], int) and 1 <= h[0] <= 6
+               and isinstance(h[1], str) and h[1] for h in headings):
+        return False
+    return (isinstance(spec.get('fields', []), list)
+            and all(isinstance(v, str) and v for v in spec.get('fields', []))
+            and isinstance(spec.get('tables', []), list)
+            and all(isinstance(t, list) and t and all(isinstance(v, str) and v for v in t)
+                    for t in spec.get('tables', [])))
+
+
+def table_headers(view):
+    """Recognize real Markdown headers by their following delimiter row."""
+    lines = view.splitlines()
+    headers = []
+    for header, delimiter in zip(lines, lines[1:]):
+        if not header.strip().startswith('|') or not delimiter.strip().startswith('|'):
+            continue
+        cells = [c.strip() for c in header.strip().strip('|').split('|')]
+        separators = [c.strip() for c in delimiter.strip().strip('|').split('|')]
+        if len(cells) == len(separators) and all(re.fullmatch(r':?-{3,}:?', c) for c in separators):
+            headers.append(tuple(cells))
+    return headers
+
+
+def heading_issues(heads, spec, rule):
+    """按契约核对标题层级、顺序、数量与契约外新增。"""
+    problems = []
+    last = -1
+    for level, text in spec:
+        found = [i for i, h in enumerate(heads) if h[0] == level and h[1] == text and i > last]
+        if not found:
+            problems.append((rule, f'缺失、层级或顺序错误：H{level} {text}'))
+        else:
+            last = found[0]
+    expected = Counter(tuple(h) for h in spec)
+    actual = Counter((h[0], h[1]) for h in heads)
+    for level, text in sorted(actual - expected):
+        problems.append((rule, f'契约外标题：H{level} {text}'))
+    for level, text in sorted(expected - actual):
+        problems.append((rule, f'标题数量不符：H{level} {text}'))
+    return problems
 
 
 def without_comments(text):
@@ -27,6 +105,22 @@ def prose_view(text):
     return body_view(without_comments(text))
 
 
+def marked_sections(raw):
+    """Visible Markdown bodies; HTML boundary markers do not alter rendering."""
+    starts = list(re.finditer(r'(?m)^<!-- template-body:start -->\s*$', raw))
+    ends = list(re.finditer(r'(?m)^<!-- template-body:end -->\s*$', raw))
+    if not starts or len(starts) != len(ends):
+        return []
+    result = []
+    previous = -1
+    for start, end in zip(starts, ends):
+        if start.start() <= previous or end.start() <= start.end():
+            return []
+        result.append((raw[start.end():end.start()], raw[:start.end()].count('\n')))
+        previous = end.end()
+    return result
+
+
 def validate(root: Path) -> dict:
     root = root.resolve()
     errors = []
@@ -34,6 +128,23 @@ def validate(root: Path) -> dict:
 
     def issue(path, rule, detail, line=0):
         errors.append({'file': path, 'line': line, 'rule': rule, 'detail': detail})
+
+    def render_checks(name, raw):
+        from markdown_syntax import inspect_markdown
+        try:
+            for item in inspect_markdown(raw, root / name, strict=True, check_links=False)['issues']:
+                issue(name, item['rule'], item['detail'], item['line'])
+        except RuntimeError as exc:
+            issue(name, 'render-dependency', str(exc))
+        for message in fence_diagnostics(raw):
+            line = re.match(r'L(\d+)', message)
+            issue(name, 'fence', message, int(line[1]) if line else 0)
+        # Check the actual visible document, not an unwrapped copy of a fence.
+        for block in parse_fences(without_comments(raw)):
+            content = prose_view(block['text'])
+            if (re.search(r'(?m)^#{1,6} ', content)
+                    or table_headers(content)):
+                issue(name, 'template-render', '模板标题或表格被代码围栏包裹，须改为可渲染正文', block['line'])
 
     def asset(name):
         if not isinstance(name, str) or Path(name).is_absolute() or '..' in Path(name).parts:
@@ -105,6 +216,10 @@ def validate(root: Path) -> dict:
             issue(name, 'contract-schema', '契约重复')
             continue
         seen.add(name)
+        authority_spec = entry.get('authority_spec')
+        if authority_spec is not None and not valid_authority_spec(authority_spec):
+            issue(name, 'contract-schema', 'authority_spec须含view、非空headings与可选fields/tables')
+            authority_spec = None
         path = asset(name)
         if path is None:
             continue
@@ -129,25 +244,57 @@ def validate(root: Path) -> dict:
                 issue(name, 'compat-declaration', '兼容呈现须精确标注权威正文')
             if target and not target.read_text(encoding='utf-8').strip():
                 issue(authority, 'empty-section', '权威正文为空')
+            if target and authority_spec:
+                authority_raw = target.read_text(encoding='utf-8')
+                render_checks(authority, authority_raw)
+                if authority_spec['view'] == 'marked-body':
+                    picked = marked_sections(authority_raw)
+                    if not picked:
+                        issue(authority, 'authority-heading', '权威正文缺少成对模板边界')
+                    authority_view = '\n'.join(prose_view(text) for text, _ in picked)
+                else:
+                    authority_view = prose_view(authority_raw)
+                authority_heads = [(len(m[1]), heading_text(m[2])) for m in
+                                   re.finditer(r'(?m)^(#{1,6}) (.+?)\s*$', authority_view)]
+                for rule, detail in heading_issues(authority_heads, authority_spec['headings'],
+                                                   'authority-heading'):
+                    issue(authority, rule, detail)
+                if 'tables' in authority_spec:
+                    wanted = Counter(tuple(t) for t in authority_spec['tables'])
+                    actual = Counter(table_headers(authority_view))
+                    for table in sorted(wanted - actual):
+                        issue(authority, 'authority-table', '权威正文缺少或改写表头：'+' / '.join(table))
+                    for table in sorted(actual - wanted):
+                        issue(authority, 'authority-table', '权威正文含契约外表：'+' / '.join(table))
+                authority_fields = authority_spec.get('fields', [])
+                for field in authority_fields:
+                    if not any(line.startswith(field) for line in authority_view.splitlines()):
+                        issue(authority, 'authority-field', '权威骨架缺少字段：'+field)
+                if authority_fields:
+                    known = {field_label(f) for f in authority_fields}
+                    for label in sorted(skeleton_labels(authority_view) - known):
+                        issue(authority, 'authority-field', '权威骨架含契约外字段：'+label)
         blocks = parse_fences(without_comments(raw))
         for b in blocks:
             if not b['closed']:
                 issue(name, 'fence', '围栏未闭合', b['line'])
+        render_checks(name, raw)
         mode = entry.get('view')
-        if mode == 'markdown-fences':
-            selected = [b for b in blocks if b['lang'] in {'markdown', 'md'}]
+        selected = []
+        if mode == 'marked-body':
+            selected = marked_sections(raw)
             if not selected:
-                issue(name, 'copyable-body', '缺少可复制Markdown骨架')
-            views = [(prose_view(b['text']), b['line']) for b in selected]
+                issue(name, 'copyable-body', '缺少成对的可渲染模板边界')
+            views = [(prose_view(text), offset) for text, offset in selected]
         elif mode == 'body':
             views = [(prose_view(raw), 0)]
         else:
-            issue(name, 'contract-schema', 'view仅允许body或markdown-fences')
+            issue(name, 'contract-schema', 'view仅允许body或marked-body')
             continue
         view = '\n'.join(v for v, _ in views)
-        if entry['id'] == 'CODE@1.0':
-            nested = [b for outer in blocks if outer['lang'] in {'markdown', 'md'}
-                      for b in parse_fences(outer['text']) if b['lang'] in {'st', 'scl'}]
+        if mode == 'marked-body' and entry.get('fields'):
+            nested = [b for text, _ in selected for b in parse_fences(text)
+                      if b['lang'] in {'st', 'scl'}]
             if not nested or not all(b['closed'] and b['text'].strip() for b in nested):
                 issue(name, 'source-slot', '可复制骨架须保留闭合且非空的ST/SCL源码占位围栏')
         heads = []
@@ -187,8 +334,14 @@ def validate(root: Path) -> dict:
             actual_count = sum(h[0] == level and h[1] == prefix for h in heads)
             if expected_count != actual_count:
                 issue(name, 'heading-contract', f'标题数量不符：H{level} {prefix}')
-        for field in entry.get('fields', []):
-            if field not in view:
+        # Every registered view has a fixed heading contract, including body views.
+        listed = {tuple(h) for h in required}
+        for level, text, line in heads:
+            if (level, text) not in listed:
+                issue(name, 'heading-contract', f'骨架含契约外标题：H{level} {text}', line)
+        spec_fields = entry.get('fields', [])
+        for field in spec_fields:
+            if not any(line.startswith(field) for line in view.splitlines()):
                 issue(name, 'field-contract', '缺少必填字段：'+field)
             else:
                 for i, line in enumerate(view.splitlines(), 1):
@@ -196,6 +349,11 @@ def validate(root: Path) -> dict:
                         following = next((l.strip() for l in view.splitlines()[i:] if l.strip()), '')
                         if not following.startswith(('- ', '* ')):
                             issue(name, 'empty-field', '必填字段缺少说明或占位值：'+field, i)
+        if spec_fields:
+            # 契约列举了字段即可复制骨架的字段集合须与之一致；正文夹叙的粗体不算字段。
+            known = {field_label(f) for f in spec_fields}
+            for label in sorted(skeleton_labels(view) - known):
+                issue(name, 'field-contract', '可复制骨架含契约外字段：'+label)
         for mapping in entry.get('authority_tables', []):
             authority = presentation.get(name, ('', ''))[1]
             authority_path = asset(authority)
@@ -209,6 +367,8 @@ def validate(root: Path) -> dict:
                     or not has_header(view, target_header) or set(aliases) != set(source_header)
                     or sorted(aliases.values()) != sorted(target_header)):
                 issue(name, 'compat-field-map', '兼容表必须完整映射权威列，不得丢失或合并必填字段')
+        for table in sorted(Counter(table_headers(view)) - Counter(tuple(t) for t in entry['tables'])):
+            issue(name, 'table-contract', '骨架含契约外表：'+' / '.join(table))
         for table in entry.get('tables', []):
             # Exact ordered header; row content is deliberately not a semantic assertion.
             if not any([c.strip() for c in l.strip().strip('|').split('|')] == table
@@ -225,7 +385,7 @@ def validate(root: Path) -> dict:
                 issue(name, 'table-structure', '表头后须有同列数的Markdown分隔行', i+1)
     for name in expected.keys() - seen:
         issue(name, 'contract-coverage', '登记模板未覆盖格式契约')
-    for path in (root / 'templates').glob('*.md'):
+    for path in (root / 'templates').rglob('*.md'):
         rel = path.relative_to(root).as_posix()
         if rel != 'templates/index.md' and rel not in expected:
             issue(rel, 'unregistered-template', '模板文件未登记')

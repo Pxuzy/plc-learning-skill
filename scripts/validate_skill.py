@@ -70,8 +70,12 @@ def local_targets(text: str, source: str, *, include_code_paths: bool = True) ->
         visible.append("" if number in open_lines or number in close_lines or in_block else line)
     prose = "\n".join(visible)
     prose = re.sub(r"(`+)(.*?)\1", "", prose)
-    for target in re.findall(r"\]\(([^)\s]+)\)", prose):
-        if target.startswith(("#", "/")) or re.match(r"[a-zA-Z][a-zA-Z0-9+.-]*:", target) or "<" in target:
+    inline = [match[1] if match[1] is not None else match[2]
+              for match in re.finditer(r'''\]\(\s*(?:<([^>\n]+)>|([^\s)]+))(?:\s+(?:"[^"\n]*"|'[^'\n]*'|\([^\n]*?\)))?\s*\)''', prose)]
+    definitions = [match[1] if match[1] is not None else match[2]
+                   for match in re.finditer(r'(?m)^ {0,3}\[[^\]\n]+\]:[ \t]*(?:<([^>\n]+)>|([^\s]+))', prose)]
+    for target in inline + definitions:
+        if target.startswith(("#", "/")) or re.match(r"[a-zA-Z][a-zA-Z0-9+.-]*:", target):
             continue
         target = target.split("#", 1)[0]
         if target:
@@ -168,9 +172,17 @@ def catalog_checks(skill_dir: Path, text: str, errors: list[str], runtime: bool 
                  for p in (skill_dir / "references").rglob("*.md")})
     graph = {source: local_targets(body, source, include_code_paths=source != CATALOG)
              for source, body in docs.items()}
-    for source, body in sorted(docs.items()):
-        for target in sorted(local_targets(body, source)):
-            if not (runtime and maintenance_target(Path(os.path.normpath(target)).as_posix())) and not (skill_dir / target).is_file():
+    link_docs = dict(docs)
+    link_docs.update({p.relative_to(skill_dir).as_posix(): p.read_text(encoding="utf-8")
+                      for p in (skill_dir / "templates").rglob("*.md")})
+    for source, body in sorted(link_docs.items()):
+        targets = local_targets(body, source)
+        # Runtime packaging may omit maintenance command/evidence paths, but an
+        # ordinary reader-facing Markdown link must always resolve.
+        reader_links = local_targets(body, source, include_code_paths=False)
+        for target in sorted(targets):
+            omitted = runtime and maintenance_target(Path(os.path.normpath(target)).as_posix()) and target not in reader_links
+            if not omitted and not (skill_dir / target).is_file():
                 errors.append(f"引用了不存在的文件：{source} -> {target}")
     reached, pending = set(), ["SKILL.md"]
     while pending:
@@ -274,8 +286,8 @@ def main(argv: list[str] | None = None) -> int:
         errors.append("缺少 description")
     elif len(desc) > MAX_DESC:
         errors.append(f"description 超过 {MAX_DESC} 字符：{len(desc)}")
-    if desc and not desc.lower().startswith("use when"):
-        warnings.append("description 未以 'Use when' 开头，触发准确性可能下降")
+    if desc and not (desc.lower().startswith("use when") or desc.endswith("时使用。")):
+        warnings.append("description 缺少明确的使用条件，建议以 'Use when' 开头或用中文说明何时使用")
     if desc and len(desc) < 25:
         warnings.append("description 过短，可能缺少触发关键词")
     if desc and len(desc) > 60:
@@ -320,6 +332,16 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.strict:
         strict_checks(skill_dir, text, errors, warnings)
+        from markdown_syntax import inspect_markdown
+        markdown_files = [p for p in (skill_dir / name for name in ('SKILL.md', 'README.md', 'CHANGELOG.md')) if p.is_file()]
+        markdown_files += sorted((skill_dir / 'references').rglob('*.md'))
+        markdown_files += sorted((skill_dir / 'templates').rglob('*.md'))
+        try:
+            for doc in markdown_files:
+                for item in inspect_markdown(doc.read_text(encoding='utf-8'), doc, strict=True, check_links=False)['issues']:
+                    errors.append(f"{doc.relative_to(skill_dir)}:L{item['line']} {item['rule']}: {item['detail']}")
+        except RuntimeError as exc:
+            errors.append(str(exc))
 
     print(f"skill: {name or skill_dir.name}  lines: {lines}  desc: {len(desc)} chars")
     for w in warnings:

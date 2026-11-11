@@ -15,9 +15,19 @@ SAMPLE = ROOT / "references" / "example-handbook.md"
 FB_SAMPLE = ROOT / "references" / "example-fb.md"
 
 
-def run(doc: Path, *extra: str):
+def _historical_sample_text():
+    """Keep mutation anchors for historical per-unit tests, without changing the runtime sample.
+
+    Default annotation compliance of the shipped sample has its own regression.
+    """
+    return re.sub(r" // AI: [^\n]*", "", SAMPLE.read_text(encoding="utf-8"))
+
+
+def run(doc: Path, *extra: str, default: bool = False):
+    """本文件复核历史 HBK@2.2 样例：默认走 --legacy-selective，保留 per-unit
+    覆盖/质量/语义审查断言；default=True 才用已确认的逐行注释新默认。"""
     return subprocess.run(
-        [sys.executable, "-B", str(SCRIPT), str(doc), *extra],
+        [sys.executable, "-B", str(SCRIPT), str(doc), *extra] + ([] if default else ["--legacy-selective"]),
         capture_output=True, text=True, cwd=ROOT, check=False,
     )
 
@@ -53,7 +63,7 @@ def test_chapter_without_matching_anchor_fails():
 
 
 def test_analogy_is_optional():
-    text = SAMPLE.read_text(encoding="utf-8")
+    text = _historical_sample_text()
     analogy_pos = text.index("**形象理解**")
     analogy_end = text.index("\n**变量怎么变**", analogy_pos)
     text = text[:analogy_pos] + text[analogy_end + 1:]
@@ -64,7 +74,7 @@ def test_analogy_is_optional():
 
 
 def test_analogy_must_follow_line_by_line_explanation():
-    text = SAMPLE.read_text(encoding="utf-8")
+    text = _historical_sample_text()
     block_start = text.index("<a id=\"m02\"></a>")
     analogy_pos = text.index("**形象理解**", block_start)
     analogy_end = text.index("\n**变量怎么变**", analogy_pos)
@@ -81,6 +91,8 @@ def test_analogy_must_follow_line_by_line_explanation():
 
 
 def test_sample_handbook_passes():
+    # 该样例是历史 HBK@2.2 选择性注释夹具：复核其 per-unit 覆盖/质量，
+    # 新默认的逐行尾注门禁由 test_default_annotations 单独覆盖。
     result = run(SAMPLE)
     assert result.returncode == 0, result.stdout + result.stderr
     assert "0 个错误" in result.stdout
@@ -238,7 +250,7 @@ def test_negated_safety_list_is_allowed():
 
 
 def test_missing_chapter_fails():
-    text = SAMPLE.read_text(encoding="utf-8")
+    text = _historical_sample_text()
     text = text.replace("## 六、段间与工位间逻辑关系", "## 六、删掉的章节", 1)
     with tempfile.TemporaryDirectory() as td:
         doc = Path(td) / "h.md"
@@ -249,7 +261,7 @@ def test_missing_chapter_fails():
 
 
 def test_chapter_outside_declared_scope_fails():
-    text = SAMPLE.read_text(encoding="utf-8")
+    text = _historical_sample_text()
     text = text.replace(
         "> 适用章节：ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10",
         "> 适用章节：ch1", 1,
@@ -263,7 +275,7 @@ def test_chapter_outside_declared_scope_fails():
 
 
 def test_chapters_must_follow_declared_order_but_may_skip():
-    text = SAMPLE.read_text(encoding="utf-8")
+    text = _historical_sample_text()
     text = text.replace(
         "> 适用章节：ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10",
         "> 适用章节：ch1, ch3, ch5", 1,
@@ -285,7 +297,7 @@ def test_chapters_must_follow_declared_order_but_may_skip():
 
 
 def test_every_module_has_four_plain_bold_subheadings():
-    text = SAMPLE.read_text(encoding="utf-8")
+    text = _historical_sample_text()
     expected = (
         "**1. 功能定位**",
         "**2. 推演示例**",
@@ -297,7 +309,7 @@ def test_every_module_has_four_plain_bold_subheadings():
 
 
 def test_readable_code_requires_worked_example_before_plc_source():
-    text = SAMPLE.read_text(encoding="utf-8")
+    text = _historical_sample_text()
     start = text.index("| 场景 | 初始状态", text.index('<a id="m02"></a>'))
     end = text.index("**3. 实现与逐句说明**", start)
     example = text[start:end]
@@ -312,7 +324,7 @@ def test_readable_code_requires_worked_example_before_plc_source():
 
 
 def test_readable_code_example_requires_initial_state_sequence_and_outcome():
-    text = SAMPLE.read_text(encoding="utf-8")
+    text = _historical_sample_text()
     text = text.replace("扫描开始时", "扫描开始", 1)
     doc = Path(tempfile.mkdtemp()) / "superficial-example.md"
     doc.write_text(text, encoding="utf-8")
@@ -322,7 +334,7 @@ def test_readable_code_example_requires_initial_state_sequence_and_outcome():
 
 
 def test_restructured_shipped_m02_example_is_accepted():
-    text = SAMPLE.read_text(encoding="utf-8")
+    text = _historical_sample_text()
     module = text.split('<a id="m02"></a>', 1)[1].split("#### M03", 1)[0]
     assert module.index("**2. 推演示例") < module.index("```pascal")
     doc = Path(tempfile.mkdtemp()) / "worked-example-before-code.md"
@@ -331,7 +343,7 @@ def test_restructured_shipped_m02_example_is_accepted():
 
 
 def test_module_fourth_part_cannot_be_missing_or_out_of_order():
-    text = SAMPLE.read_text(encoding="utf-8")
+    text = _historical_sample_text()
     assert "**4. 与其他程序的交互**" in text
     assert "**4. 与其他机台的交互**" not in text
     legacy_text = text.replace("**4. 与其他程序的交互**", "**4. 与其他机台的交互**", 1)
@@ -349,7 +361,7 @@ def test_module_fourth_part_cannot_be_missing_or_out_of_order():
 
 
 def test_each_module_part_missing_duplicate_or_reordered_fails():
-    base = SAMPLE.read_text(encoding="utf-8")
+    base = _historical_sample_text()
     titles = (
         "**1. 功能定位**",
         "**2. 推演示例**",
@@ -372,7 +384,7 @@ def test_each_module_part_missing_duplicate_or_reordered_fails():
 
 
 def test_module_parts_are_not_directory_headings():
-    text = SAMPLE.read_text(encoding="utf-8").replace("**1. 功能定位**", "##### 1. 功能定位", 1)
+    text = _historical_sample_text().replace("**1. 功能定位**", "##### 1. 功能定位", 1)
     doc = Path(tempfile.mkdtemp()) / "headings.md"
     doc.write_text(text, encoding="utf-8")
     result = run(doc)
@@ -381,7 +393,7 @@ def test_module_parts_are_not_directory_headings():
 
 
 def test_forbidden_omission_fails():
-    text = SAMPLE.read_text(encoding="utf-8")
+    text = _historical_sample_text()
     text = text.replace("## 七、关键 MFB/FB", "## 七、关键 MFB/FB\n\n其余略。", 1)
     with tempfile.TemporaryDirectory() as td:
         doc = Path(td) / "h.md"
@@ -392,7 +404,7 @@ def test_forbidden_omission_fails():
 
 
 def test_missing_src_marker_fails():
-    text = SAMPLE.read_text(encoding="utf-8")
+    text = _historical_sample_text()
     text = text.replace("<!-- src:", "<!-- 源:", 10)
     with tempfile.TemporaryDirectory() as td:
         doc = Path(td) / "h.md"
@@ -403,7 +415,7 @@ def test_missing_src_marker_fails():
 
 
 def test_missing_two_pass_fails():
-    text = SAMPLE.read_text(encoding="utf-8")
+    text = _historical_sample_text()
     text = text.replace("**1. 功能定位**", "**用途**", 2).replace("**2. 推演示例**", "**代码**", 2)
     with tempfile.TemporaryDirectory() as td:
         doc = Path(td) / "h.md"
@@ -414,7 +426,7 @@ def test_missing_two_pass_fails():
 
 
 def test_segment_without_line_bullets_fails():
-    text = SAMPLE.read_text(encoding="utf-8")
+    text = _historical_sample_text()
     kept = [ln for ln in text.splitlines() if not (ln.strip().startswith("- ") and "`" in ln)]
     with tempfile.TemporaryDirectory() as td:
         doc = Path(td) / "h.md"
@@ -425,7 +437,7 @@ def test_segment_without_line_bullets_fails():
 
 
 def _variant(*replacements):
-    text = SAMPLE.read_text(encoding="utf-8")
+    text = _historical_sample_text()
     for old, new in replacements:
         assert old != new, f"replacement must mutate the fixture: {old!r}"
         assert old in text, f"fixture anchor not found: {old!r}"
@@ -520,12 +532,21 @@ def test_real_comment_after_string_literal_is_accepted():
     assert result.returncode == 0, result.stdout + result.stderr
 
 
-def test_pure_structure_closures_may_omit_inline_comments():
-    text = SAMPLE.read_text(encoding="utf-8")
+def test_pure_structure_closures_require_note_by_default():
+    text = _historical_sample_text()
     assert "    END_IF;\nEND_IF;" in text
     assert "END_IF; //" not in text
-    result = run(SAMPLE)
-    assert result.returncode == 0, result.stdout + result.stderr
+    # 已确认的新默认：结构闭合行也要 // AI: 尾注；历史选择性口径须显式开关。
+    with tempfile.TemporaryDirectory() as td:
+        doc = Path(td) / 'unannotated-closures.md'
+        doc.write_text(text, encoding='utf-8')
+        default = run(doc, default=True)
+        assert default.returncode == 1, default.stdout
+        assert "默认逐行注释缺失" in default.stdout
+        legacy = run(doc)
+        assert legacy.returncode == 0, legacy.stdout + legacy.stderr
+    shipped = run(SAMPLE, default=True)
+    assert shipped.returncode == 0, shipped.stdout + shipped.stderr
 
 
 def test_closure_with_following_statement_requires_comment():
@@ -594,7 +615,7 @@ def test_missing_source_block_inventory_fails():
 
 
 def test_emoji_budget_is_not_a_gate_but_code_emoji_fails():
-    text = SAMPLE.read_text(encoding="utf-8")
+    text = _historical_sample_text()
     text += "\n" + "\n".join("- 🚀 阅读提示" for _ in range(41)) + "\n"
     with tempfile.TemporaryDirectory() as td:
         doc = Path(td) / "h.md"
@@ -602,7 +623,7 @@ def test_emoji_budget_is_not_a_gate_but_code_emoji_fails():
         result = run(doc)
     assert result.returncode == 0, result.stdout + result.stderr
 
-    text2 = SAMPLE.read_text(encoding="utf-8").replace("    yClampValve := TRUE;", "    yClampValve := TRUE; // ✅ 置位", 1)
+    text2 = _historical_sample_text().replace("    yClampValve := TRUE;", "    yClampValve := TRUE; // ✅ 置位", 1)
     with tempfile.TemporaryDirectory() as td:
         doc = Path(td) / "h.md"
         doc.write_text(text2, encoding="utf-8")
@@ -671,7 +692,7 @@ xReady := TRUE; // 🚀 非代码注释
 
 
 def test_normal_prose_can_quote_emoji_policy_without_false_positive():
-    text = SAMPLE.read_text(encoding="utf-8") + "\n正文引用规范示例：“xReady 🚀”作为反例，不代表真实变量。\n"
+    text = _historical_sample_text() + "\n正文引用规范示例：“xReady 🚀”作为反例，不代表真实变量。\n"
     with tempfile.TemporaryDirectory() as td:
         doc = Path(td) / "h.md"
         doc.write_text(text, encoding="utf-8")
@@ -700,7 +721,7 @@ def test_alarm_matrix_columns_required():
 
 
 def test_final_rejects_unfinished_status():
-    text = SAMPLE.read_text(encoding="utf-8")
+    text = _historical_sample_text()
     old = '| M02 | 夹紧控制 | obj2 | 示例可见 6 行 | 已讲 | 本次范围 |'
     assert old in text
     text = text.replace(old, old.replace('已讲', '受保护'), 1)
@@ -865,7 +886,7 @@ def main() -> int:
         test_condition_state_and_risk_comment_is_accepted,
         test_string_literal_slashes_do_not_count_as_inline_comments,
         test_real_comment_after_string_literal_is_accepted,
-        test_pure_structure_closures_may_omit_inline_comments,
+        test_pure_structure_closures_require_note_by_default,
         test_closure_with_following_statement_requires_comment,
         test_else_requires_inline_comment,
         test_elsif_requires_inline_comment,

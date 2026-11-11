@@ -13,10 +13,12 @@ CLI = ROOT / 'scripts/check_local_explanation.py'
 
 
 def invoke(text=VALID, source=SOURCE):
+    # 本文件校验的是“原码”模式（模式 B）：源码逐字符保真、不追加 AI 尾注，
+    # 因此显式走 --original-source；默认逐行注释契约由 test_default_annotations 覆盖。
     with tempfile.TemporaryDirectory() as tmp:
         doc = Path(tmp)/'local.md'; src = Path(tmp)/'input.st'
         doc.write_bytes(text.encode('utf-8')); src.write_bytes(source.encode('utf-8'))
-        return subprocess.run([sys.executable,'-B',str(CLI),str(doc),'--source',str(src)],
+        return subprocess.run([sys.executable,'-B',str(CLI),str(doc),'--source',str(src),'--original-source'],
                               env={**os.environ,'PYTHONDONTWRITEBYTECODE':'1'}, capture_output=True, text=True)
 
 

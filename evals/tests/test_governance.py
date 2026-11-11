@@ -40,6 +40,7 @@ class PolicyTests(unittest.TestCase):
             tracked_markdown = result.stdout.decode().splitlines()
             # Approved reference additions must be checked before they are staged.
             tracked_markdown += [
+                'references/core-requirements.md',
                 'references/inline-comment-style.md',
                 'references/inline-comment-examples.md',
                 'references/skill-maintenance.md',
@@ -156,14 +157,17 @@ class PolicyTests(unittest.TestCase):
         for section in ('## 四、单元索引', '## 五、跨单元逻辑关系', '## 六、覆盖与缺口'):
             self.assertIn(section, body, 'valid fields of the authoritative body must be kept')
 
-    def test_annotation_policy_defaults_to_selective_value_add_comments(self):
+    def test_annotation_policy_defaults_to_every_line_business_comments(self):
         skill = (ROOT / 'SKILL.md').read_text(encoding='utf-8')
         workflow = (ROOT / 'references/workflows/explain-code.md').read_text(encoding='utf-8')
         self.assertIn('注释前置参考', skill)
-        self.assertIn('默认按简洁业务句追加', workflow)
+        self.assertIn('默认逐行', skill)
+        self.assertIn('默认对每条非空源行（含结构闭合行）', workflow)
         self.assertIn('风格参考摘要', workflow)
         self.assertIn('长手册分段与续接', workflow)
-        self.assertIn('要求原样源码时不添加注释', workflow)
+        self.assertIn('当次明确要求原样源码时不添加注释', workflow)
+        self.assertIn('空白及纯注释行不补', workflow)
+        self.assertNotIn('按信息量**选点**', workflow)
 
     def test_variable_evidence_is_recorded_per_declaration(self):
         skill = (ROOT / 'SKILL.md').read_text(encoding='utf-8')

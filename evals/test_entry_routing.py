@@ -151,7 +151,7 @@ def test_complex_framework_intent_starts_guided_handbook_route():
     complex_route = mode_line(body, "C")
     assert "理解复杂框架" in complex_route
     assert "自动走系统学习" in complex_route
-    assert "不要求用户说出" in complex_route
+    assert "不要求特定口令" in complex_route
     assert "默认选择最小满足范围" in body
     workflow = (ROOT / "references/workflow.md").read_text(encoding="utf-8")
     for phrase in ("复杂框架默认", "全局地图并开始第一阶段", "代表工位", "全部可读源码覆盖", "学习文档"):
@@ -240,7 +240,8 @@ def test_common_entry_cannot_downgrade_mode_b_template():
     catalog = (ROOT / "references/catalog.md").read_text(encoding="utf-8")
     scope = next(line for line in catalog.splitlines() if line.startswith("| PLC-COMMENT-VALUE |"))
     assert "完整手册/教学重建" in scope
-    assert "局部 B 默认原码" in scope
+    assert "局部 B 同口径" in scope
+    assert "默认对每条非空源行" in scope
 
 
 def test_local_scope_does_not_reduce_requested_depth():
