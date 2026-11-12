@@ -220,7 +220,7 @@ def test_maintenance_verification_points_to_four_named_commands():
     skill = read("SKILL.md")
     assert "references/workflow.md" in skill
     from test_entry_routing import read_heading
-    maintenance = read_heading("SKILL.md", "### 维护入口（仅修改技能时加载）")
+    maintenance = read_heading("SKILL.md", "### 维护入口与模板来源核对")
     assert all(term in maintenance for term in ("维护", "审计", "技能维护与成果保护", "技能维护回归"))
     verification = read_heading("references/workflow.md", "### 技能维护回归")
     for command in ("evals/run.py", "validate_skill.py", "validate_template_index.py", "git diff --check"):

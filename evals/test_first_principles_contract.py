@@ -353,7 +353,8 @@ class RuntimeEditorialBoundaryContract(unittest.TestCase):
                 self.assertNotIn(fragment, entry)
         body = entry.split("---", 2)[-1]
         self.assertNotRegex(body, r"\b\d+\.\d+\.\d+\b", "执行入口正文不应再引用技能版本沿革")
-        self.assertIn("维护入口（仅修改技能时加载）", entry)
+        self.assertIn("维护入口与模板来源核对", entry)
+        self.assertIn("采用特定分支模板时只读取维护入口的来源核对要求", entry)
         self.assertIn("技能维护与成果保护", read_asset("references/workflow.md"))
 
     def test_templates_allow_unknown_clear_points_and_comparative_advantage(self):

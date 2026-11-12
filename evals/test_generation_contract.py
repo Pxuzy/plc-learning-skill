@@ -46,8 +46,32 @@ class GenerationContract(unittest.TestCase):
         for line in text.splitlines():
             if line.startswith('- **PLC-'):
                 self.assertLessEqual(len(line), 350, '一条规则混入过多次级要求，应拆成可扫描的子项')
-        for heading in ('### 源码、注释与证据', '### 教学结构与连续覆盖', '### 执行语义与边界', '### 交付与用户指定规则'):
+        for heading in ('### 源码、注释与证据', '### 教学结构与连续覆盖', '### 执行语义与边界', '### 交付与注释约定'):
             self.assertIn(heading, text)
+
+    def test_entry_uses_neutral_rules_and_routes_maintenance_details(self):
+        text = (ROOT / 'SKILL.md').read_text()
+        maintenance = (ROOT / 'references/skill-maintenance.md').read_text()
+        runtime = (ROOT / 'references/runtime-guidance.md').read_text()
+        catalog = (ROOT / 'references/catalog.md').read_text()
+        for phrase in ('他指定', '用户指定某分支', '扩样是增量',
+                       '注释口径按用户当次要求'):
+            self.assertNotIn(phrase, runtime)
+        self.assertNotIn('其指定模板', catalog)
+        entry_rule = next(line for line in text.splitlines() if line.startswith('- **PLC-COMMENT-PRECEDENCE'))
+        runtime_rule = next(line for line in runtime.splitlines() if line.startswith('- **PLC-COMMENT-PRECEDENCE'))
+        self.assertEqual(entry_rule, runtime_rule)
+        self.assertIn('模板来源限定到特定分支时', text)
+        for phrase in ('用户指定', '他指定', '用户要求**把原作者注释风格',
+                       'git show <提交>:<模板>', '扩样是增量', '整体相似度百分比'):
+            self.assertNotIn(phrase, text)
+        for phrase in ('当次明确要求优先于默认设置', '默认逐行追加注释',
+                       'references/skill-maintenance.md'):
+            self.assertIn(phrase, text)
+        for phrase in ('分支名、提交号', 'git show <提交>:<模板>',
+                       '整份候选全文', '项目自定义', '纸面断言',
+                       '确认前不接入、不写技能目录'):
+            self.assertIn(phrase, maintenance)
 
     def test_reviewed_entry_preserves_summary_and_limits_exemptions(self):
         text = (ROOT / 'SKILL.md').read_text()

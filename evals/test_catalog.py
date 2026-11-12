@@ -58,7 +58,7 @@ class CatalogTests(unittest.TestCase):
         self.assertIn(f"`{CATALOG}`", text)
         self.assertFalse(asset_rows(text), "入口不重复 catalog 的资产登记行")
         self.assertFalse({p for p in ASSET_RE.findall(text) if p.startswith("evals/")})
-        maintenance = text.split("### 维护入口（仅修改技能时加载）", 1)[1].split("## 参考文件", 1)[0]
+        maintenance = text.split("### 维护入口与模板来源核对", 1)[1].split("## 参考文件", 1)[0]
         for route in ("references/workflow.md", "技能维护与成果保护", "技能维护回归"):
             self.assertIn(route, maintenance)
         workflow = (ROOT / "references/workflow.md").read_text(encoding="utf-8")
