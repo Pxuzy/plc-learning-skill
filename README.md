@@ -66,7 +66,7 @@ python -B scripts/check_markdown_format.py 讲解稿.md --strict --json
 
 ### 钩子
 
-新克隆须在仓库根目录执行 `git config core.hooksPath .githooks` 和 `git config commit.template .gitmessage`；钩子不会随 clone 自动启用：
+新克隆先执行 `python3 -B scripts/hooks.py install`（检测到宿主隐私钩子时会建立 `privacy.originalHooksPath` 委托；无宿主时用 `install --local-only`），再执行 `git config commit.template .gitmessage`。只有无宿主的临时仓库才可直接 `git config core.hooksPath .githooks`——那会绕开宿主全局钩子链。钩子不会随 clone 自动启用：
 
 - `pre-commit`：扫描整个真实暂存树，拒绝私有标识/源码哈希指纹、凭据、IP、本机绝对路径、个人邮箱、二进制和本地产物；再跑严格结构、模板索引和暂存区空白检查。`git add -f` 不能豁免隐私检查。完整回归按需用 `SKILL_PRECOMMIT_FULL=1 git commit ...`。
 - `commit-msg`：校验英文 type、小写 scope、中文标题、空行及分条正文，并扫描消息隐私。

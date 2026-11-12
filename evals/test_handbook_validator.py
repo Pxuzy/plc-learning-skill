@@ -3,11 +3,25 @@
 
 from __future__ import annotations
 
+import atexit
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
+
+_TEMP_DIRS: list[Path] = []
+
+
+def _tempdir() -> Path:
+    """与本文件历史写法兼容的临时目录，退出时统一清理。"""
+    path = Path(tempfile.mkdtemp())
+    _TEMP_DIRS.append(path)
+    return path
+
+
+atexit.register(lambda: [shutil.rmtree(d, ignore_errors=True) for d in _TEMP_DIRS])
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "validate_handbook.py"
@@ -67,7 +81,7 @@ def test_analogy_is_optional():
     analogy_pos = text.index("**形象理解**")
     analogy_end = text.index("\n**变量怎么变**", analogy_pos)
     text = text[:analogy_pos] + text[analogy_end + 1:]
-    doc = Path(tempfile.mkdtemp()) / "no-analogy.md"
+    doc = _tempdir() / "no-analogy.md"
     doc.write_text(text, encoding="utf-8")
     result = run(doc)
     assert result.returncode == 0, result.stdout + result.stderr
@@ -82,7 +96,7 @@ def test_analogy_must_follow_line_by_line_explanation():
     text = text[:analogy_pos] + text[analogy_end:]
     line_pos = text.index("**逐句看**", block_start)
     text = text[:line_pos] + analogy_block + "\n\n" + text[line_pos:]
-    doc = Path(tempfile.mkdtemp()) / "h.md"
+    doc = _tempdir() / "h.md"
     doc.write_text(text, encoding="utf-8")
     assert text.index("**形象理解**", block_start) < text.index("**逐句看**", block_start)
     result = run(doc)
@@ -90,12 +104,13 @@ def test_analogy_must_follow_line_by_line_explanation():
     assert "必须放在逐句说明之后" in result.stdout
 
 
-def test_sample_handbook_passes():
-    # 该样例是历史 HBK@2.2 选择性注释夹具：复核其 per-unit 覆盖/质量，
+def test_legacy_2x_sample_still_parses_with_warnings():
+    # 该样例是历史 HBK@2.2 选择性注释夹具：只验证旧版式仍可解析并给出兼容提示，
     # 新默认的逐行尾注门禁由 test_default_annotations 单独覆盖。
     result = run(SAMPLE)
     assert result.returncode == 0, result.stdout + result.stderr
     assert "0 个错误" in result.stdout
+    assert "历史" in result.stdout or "WARN" in result.stdout, "历史样例应产生兼容性提示"
 
 
 def test_fb_topic_sample_passes():
@@ -125,7 +140,7 @@ def test_pure_signal_flow_document_does_not_need_handbook_chapters():
 
 仅说明当前可见信号，不推断机械动作。
 """
-    doc = Path(tempfile.mkdtemp()) / "signal.md"
+    doc = _tempdir() / "signal.md"
     doc.write_text(text, encoding="utf-8")
     result = run(doc)
     assert result.returncode == 0, result.stdout + result.stderr
@@ -140,7 +155,7 @@ def test_registered_template_composition_is_accepted():
 ## Definition
 Only visible interface facts are recorded.
 """
-    doc = Path(tempfile.mkdtemp()) / "fb.md"
+    doc = _tempdir() / "fb.md"
     doc.write_text(text, encoding="utf-8")
     result = run(doc)
     assert result.returncode == 0, result.stdout + result.stderr
@@ -155,7 +170,7 @@ def test_unknown_template_id_fails():
 ## Object
 <details>
 """
-    doc = Path(tempfile.mkdtemp()) / "unknown.md"
+    doc = _tempdir() / "unknown.md"
     doc.write_text(text, encoding="utf-8")
     result = run(doc)
     assert result.returncode == 1
@@ -171,7 +186,7 @@ def test_unregistered_template_combination_fails():
 ## Summary
 <summary>
 """
-    doc = Path(tempfile.mkdtemp()) / "combo.md"
+    doc = _tempdir() / "combo.md"
     doc.write_text(text, encoding="utf-8")
     result = run(doc)
     assert result.returncode == 1
@@ -191,7 +206,7 @@ def test_included_alarm_matrix_still_requires_its_fields():
 |---|---|---|
 | AL-01 | 条件成立 | 停止 |
 """
-    doc = Path(tempfile.mkdtemp()) / "alarms.md"
+    doc = _tempdir() / "alarms.md"
     doc.write_text(text, encoding="utf-8")
     result = run(doc)
     assert result.returncode == 1
@@ -228,7 +243,7 @@ def test_read_only_safety_boundary_is_allowed():
 ## Scope
 禁止修改 PLC 程序；不下载、不强制 I/O、不旁路安全、不做产线试错。
 """
-    doc = Path(tempfile.mkdtemp()) / "safe.md"
+    doc = _tempdir() / "safe.md"
     doc.write_text(text, encoding="utf-8")
     result = run(doc)
     assert result.returncode == 0, result.stdout + result.stderr
@@ -243,7 +258,7 @@ def test_negated_safety_list_is_allowed():
 ## Scope
 不得通过在线改参、强制 I/O 或设备试运行验证差异。
 """
-    doc = Path(tempfile.mkdtemp()) / "safe-list.md"
+    doc = _tempdir() / "safe-list.md"
     doc.write_text(text, encoding="utf-8")
     result = run(doc)
     assert result.returncode == 0, result.stdout + result.stderr
@@ -284,7 +299,7 @@ def test_chapters_must_follow_declared_order_but_may_skip():
     chunks = re.split(r"(?m)(?=^<a id=\"ch\d+\"></a>$)", text)
     text = "".join(chunk for chunk in chunks if not (m := re.search(r'<a id="(ch\d+)"></a>', chunk)) or m.group(1) in keep)
     text = re.sub(r"\(#ch(?:2|4|6|7|8|9|10)\)", "", text)
-    doc = Path(tempfile.mkdtemp()) / "ordered-subset.md"
+    doc = _tempdir() / "ordered-subset.md"
     doc.write_text(text, encoding="utf-8")
     assert run(doc).returncode == 0
     reversed_text = text.replace("## 一、工程与边界", "## TEMP、工程与边界", 1)
@@ -316,7 +331,7 @@ def test_readable_code_requires_worked_example_before_plc_source():
     text = text[:start] + text[end:]
     code_end = text.index("```", text.index("```pascal", text.index('<a id="m02"></a>')) + 3) + 3
     text = text[:code_end] + "\n\n" + example + text[code_end:]
-    doc = Path(tempfile.mkdtemp()) / "example-after-code.md"
+    doc = _tempdir() / "example-after-code.md"
     doc.write_text(text, encoding="utf-8")
     result = run(doc)
     assert result.returncode == 1
@@ -326,7 +341,7 @@ def test_readable_code_requires_worked_example_before_plc_source():
 def test_readable_code_example_requires_initial_state_sequence_and_outcome():
     text = _historical_sample_text()
     text = text.replace("扫描开始时", "扫描开始", 1)
-    doc = Path(tempfile.mkdtemp()) / "superficial-example.md"
+    doc = _tempdir() / "superficial-example.md"
     doc.write_text(text, encoding="utf-8")
     result = run(doc)
     assert result.returncode == 1
@@ -337,7 +352,7 @@ def test_restructured_shipped_m02_example_is_accepted():
     text = _historical_sample_text()
     module = text.split('<a id="m02"></a>', 1)[1].split("#### M03", 1)[0]
     assert module.index("**2. 推演示例") < module.index("```pascal")
-    doc = Path(tempfile.mkdtemp()) / "worked-example-before-code.md"
+    doc = _tempdir() / "worked-example-before-code.md"
     doc.write_text(text, encoding="utf-8")
     assert run(doc).returncode == 0
 
@@ -347,13 +362,13 @@ def test_module_fourth_part_cannot_be_missing_or_out_of_order():
     assert "**4. 与其他程序的交互**" in text
     assert "**4. 与其他机台的交互**" not in text
     legacy_text = text.replace("**4. 与其他程序的交互**", "**4. 与其他机台的交互**", 1)
-    legacy_doc = Path(tempfile.mkdtemp()) / "legacy-module-part.md"
+    legacy_doc = _tempdir() / "legacy-module-part.md"
     legacy_doc.write_text(legacy_text, encoding="utf-8")
     legacy_result = run(legacy_doc)
     assert legacy_result.returncode == 1
     assert "模块四部分" in legacy_result.stdout
     text = text.replace("**2. 推演示例**", "**2. 交互示例**", 1)
-    doc = Path(tempfile.mkdtemp()) / "bad-module-parts.md"
+    doc = _tempdir() / "bad-module-parts.md"
     doc.write_text(text, encoding="utf-8")
     result = run(doc)
     assert result.returncode == 1
@@ -376,7 +391,7 @@ def test_each_module_part_missing_duplicate_or_reordered_fails():
     swapped = swapped.replace(titles[1], titles[0], 1).replace("__PART_ONE__", titles[1], 1)
     mutations.append(swapped)
     for index, text in enumerate(mutations):
-        doc = Path(tempfile.mkdtemp()) / f"bad-parts-{index}.md"
+        doc = _tempdir() / f"bad-parts-{index}.md"
         doc.write_text(text, encoding="utf-8")
         result = run(doc)
         assert result.returncode == 1, f"mutation {index} unexpectedly passed"
@@ -385,7 +400,7 @@ def test_each_module_part_missing_duplicate_or_reordered_fails():
 
 def test_module_parts_are_not_directory_headings():
     text = _historical_sample_text().replace("**1. 功能定位**", "##### 1. 功能定位", 1)
-    doc = Path(tempfile.mkdtemp()) / "headings.md"
+    doc = _tempdir() / "headings.md"
     doc.write_text(text, encoding="utf-8")
     result = run(doc)
     assert result.returncode == 1
@@ -444,7 +459,7 @@ def _variant(*replacements):
         updated = text.replace(old, new, 1)
         assert updated != text, f"fixture mutation failed: {old!r}"
         text = updated
-    td = Path(tempfile.mkdtemp()) / "h.md"
+    td = _tempdir() / "h.md"
     td.write_text(text, encoding="utf-8")
     return td
 
@@ -854,7 +869,7 @@ def main() -> int:
         test_chapter_without_matching_anchor_fails,
         test_analogy_is_optional,
         test_analogy_must_follow_line_by_line_explanation,
-        test_sample_handbook_passes,
+        test_legacy_2x_sample_still_parses_with_warnings,
         test_fb_topic_sample_passes,
         test_pure_signal_flow_document_does_not_need_handbook_chapters,
         test_registered_template_composition_is_accepted,

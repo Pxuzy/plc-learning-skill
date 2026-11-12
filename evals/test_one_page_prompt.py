@@ -25,7 +25,8 @@ class OnePagePromptTests(unittest.TestCase):
             self.assertIn(marker, TEXT)
 
     def test_fixed_skeleton_is_copyable(self):
-        for heading in ("## 关键变量", "### M01", "#### 1. 功能定位与执行条件", "#### 2. 源码",
+        for heading in ("## 整体功能与关键变量", "**控制目标**", "<a id=\"m01\"></a>", "### M01",
+                        "#### 1. 功能定位与执行条件", "#### 2. 源码",
                         "#### 3. 代码块整体讲解", "#### 4. 形象示例", "#### 5. 程序交互与段间交接"):
             self.assertIn(heading, TEXT, heading)
 

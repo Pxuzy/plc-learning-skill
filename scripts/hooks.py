@@ -117,6 +117,9 @@ def install(local_only):
     common, state_path = locations()
     if state_path.exists():
         state = json.loads(state_path.read_text())
+        if resolve(state.get('target', '')) != (ROOT / '.githooks').resolve():
+            # 状态文件在 common dir 共享，target 却是某个 worktree 的绝对路径。
+            raise SetupError('another worktree owns the hook chain; run restore there first')
         diagnose(state)
         print('hooks: already installed; doctor OK')
         return

@@ -89,7 +89,7 @@ class LocalContractTests(unittest.TestCase):
         bad = VALID
         for row in rows[2:]:
             bad = bad.replace(row, '')
-        self.reject(bad, '3')
+        self.reject(bad, '至少 3 个不同执行序号')
 
     def test_execution_count_deduplicates_track_ordinals_and_accepts_time_labels(self):
         duplicate = re.sub(r'(?m)^\| A 第\d+次 ', '| A 第1次 ', VALID)

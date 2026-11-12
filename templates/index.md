@@ -8,7 +8,7 @@
 |---|---|---|---|---|
 | NAV@1.0 | `project-navigation.md` | 工程跨多个对象、框架复杂，或用户尚未选定范围 | 用户已明确指定对象且无需理解更大框架时，直接走 CODE | 用户选范围后转入 CODE；本身不是代码讲解 |
 | CODE@1.0 | `code-explanation.md` | 用户要求讲解 PLC 代码，且范围已明确或已选定 | 简短事实问题直接简答，不套模板 | 按需引用厂商资料；实际拆成多本时配 BOOKSET |
-| BOOKSET@1.0 | `handbook-index.md` | 用户要求完整多对象手册，且实际输出拆为两本或更多 | 单本手册直接交付，不生成空索引或预留册号 | 配套各册 CODE 手册；不替代其内容 |
+| BOOKSET@1.0 | `handbook-index.md` | 用户要求完整多对象手册，且实际输出拆为两本或更多 | 单本手册直接交付，不生成空索引或预留册号 | 配套各册 HBK 手册（需要局部讲解时叠加 CODE）；不替代其内容 |
 
 CODE 的正式输出规则权威是 `references/local-code-explanation.md`，`templates/code-explanation.md` 只是其兼容呈现；BOOKSET 的单一正文是 `references/template-handbook-index.md`，`templates/handbook-index.md` 以 `template-compat` 标注为兼容呈现。呈现文件与权威正文冲突时，以权威正文为准。
 
@@ -21,7 +21,7 @@ CODE 的正式输出规则权威是 `references/local-code-explanation.md`，`te
 | 用户未选范围，或复杂工程需要先拆解 | NAV | 展示可选对象并**等待用户选择**；默认不创建额外导航文件 |
 | 用户明确要求完整范围 | 按完整范围使用 NAV/CODE | 仅在实际拆成多册时增加 BOOKSET |
 | 单个对象的详细讲解 | CODE | 不生成多册索引 |
-| 多个对象被拆为多本手册 | 各册 CODE + BOOKSET | 索引登记对象、阅读顺序、跨册关系和覆盖/缺口 |
+| 多个对象被拆为多本手册 | 各册 HBK（按需叠加 CODE）+ BOOKSET | 索引登记对象、阅读顺序、跨册关系和覆盖/缺口 |
 
 ## 组合与范围
 

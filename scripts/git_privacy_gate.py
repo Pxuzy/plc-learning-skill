@@ -13,6 +13,12 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 
+# Mirrors scripts/project_policy.CREDENTIAL so the hook and the offline policy agree;
+# evals/tests/test_governance.py asserts parity for both rulesets.
+UNQUOTED_CREDENTIAL = re.compile(
+    r'''(?ix)(?:["']?)(?:password|passwd|secret|api[_-]?key|access[_-]?token|auth[_-]?token)
+    ["']?\s*[:=]\s*["']?(\$\{[A-Z_][A-Z0-9_]*\}|[^\s"',;}\]]+)''')
+
 
 def git(*args: str) -> bytes:
     result = subprocess.run(['git', '--no-optional-locks', *args], capture_output=True)
@@ -64,6 +70,9 @@ class Scanner:
         if '\x00' in text:
             self.issue(label, 0, 'binary-content')
             return
+        if any(ord(char) < 32 and char not in '\t\n\r' for char in text):
+            self.issue(label, 0, 'control-characters')
+            return
         for number, line in enumerate(text.splitlines(), 1):
             if self.blocked_identifier(line):
                 self.issue(label, number, 'private-identifier')
@@ -75,6 +84,12 @@ class Scanner:
                 self.issue(label, number, 'url-credentials')
             if re.search(r'''(?i)\b(?:api[_-]?key|access[_-]?token|secret|password|passwd)\s*[:=]\s*["'][^"'\s]{8,}["']''', line):
                 self.issue(label, number, 'literal-credential')
+            for match in UNQUOTED_CREDENTIAL.finditer(line):
+                candidate = match.group(1)
+                if not (re.fullmatch(r'\$\{[A-Z_][A-Z0-9_]*\}', candidate)
+                        or candidate in ('REDACTED', 'PLACEHOLDER')):
+                    self.issue(label, number, 'literal-credential')
+                    break
             if re.search(r'(?i)(?:/(?:home|Users)/[A-Za-z0-9._-]+|[A-Z]:[\\/](?:Users|Documents and Settings)[\\/][^\s\\/]+)', line):
                 self.issue(label, number, 'local-home-path')
             for email in re.findall(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b', line):

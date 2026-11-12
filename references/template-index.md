@@ -22,13 +22,15 @@
 
 ## 呈现模板登记（局部讲解与导航）
 
-局部讲解与导航的 ID、版本和权威正文同样只在本文件登记；`templates/` 下的两份文件是可复制的兼容呈现，不构成第二套注册表，也不得新增、删除或改名正式字段。呈现文件与权威正文冲突时，以权威正文为准，并同步修正呈现文件。
+局部讲解与导航的 ID、版本和权威正文同样只在本文件登记；`templates/` 下的三份文件是可复制的兼容呈现，不构成第二套注册表，也不得新增、删除或改名正式字段。呈现文件与权威正文冲突时，以权威正文为准，并同步修正呈现文件。
 
 | ID/版本 | 权威正文（唯一） | 呈现文件 | 适用条件 | 呈现边界 |
 |---|---|---|---|---|
 | CODE@1.0 | `references/local-code-explanation.md` | `templates/code-explanation.md` | 用户要求讲解已选定范围的 PLC 代码 | 兼容呈现四行元信息、`### Mxx`、`#### 1～5` 五部分、粗体四字段、源码定位与范围映射、批判性审查与验证状态；只替换占位内容 |
 | NAV@1.0 | `references/workflows/project-navigation.md` | `templates/project-navigation.md` | 工程跨多个对象、框架复杂或用户尚未选定范围 | 兼容呈现总览、结构地图与可选对象；用于选范围，不代替逐段讲解 |
 | BOOKSET@1.0 | `references/template-handbook-index.md` | `templates/handbook-index.md` | 用户要求完整多对象手册，且实际输出拆为两本或更多 | 同版只允许一个正文；呈现文件以 `template-compat` 标注引用该正文，保留自身分册字段，不另立第二份定义 |
+
+另外，`references/one-page-prompt.md` 是 CODE@1.0 的**弱模型精简呈现**（降级路径，不是 `templates/` 资产、不进上表、不参与模板格式校验）：字段名、顺序与锚点须与权威正文一致，冲突时以 `references/local-code-explanation.md` 为准。
 
 呈现文件保留自身模板声明（`<!-- template-id: ID@版本 -->`）；非权威正文的呈现文件另写 `<!-- template-compat: ID@版本 -> 权威正文相对路径 -->`，使同一版本号唯一对应一份正文。新增或改版呈现模板须同步本表、路由与 `evals/check_foundation.py`。
 

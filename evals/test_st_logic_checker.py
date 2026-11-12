@@ -238,6 +238,15 @@ def test_constant_index_out_of_bounds():
     assert "aCodes[7]" in result.stdout, result.stdout
 
 
+def test_constant_index_bounds_are_case_insensitive():
+    # ST 标识符大小写不敏感：声明用 aCodes、使用写 ACODES 时仍须检出越界。
+    text = ("VAR\n    aCodes : ARRAY[0..3] OF INT;\nEND_VAR\n"
+            "ACODES[7] := 2;\n")
+    result = check(text)
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert_has(result, "STB010", 4)
+
+
 def test_division_and_modulo_by_zero():
     result = check("VAR\n    nA : INT;\nEND_VAR\nnA := 10 / 0;\nnA := 10 MOD 0;\n")
     assert result.returncode == 1, result.stdout + result.stderr
@@ -404,6 +413,7 @@ def main() -> int:
              test_parent_self_reference_and_cycle,
              test_negative_timeout,
              test_constant_index_out_of_bounds,
+             test_constant_index_bounds_are_case_insensitive,
              test_division_and_modulo_by_zero,
              test_division_by_constant_variable_is_not_flagged,
              test_tautological_conditions,

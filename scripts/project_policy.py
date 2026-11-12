@@ -11,7 +11,7 @@ import sys
 TYPES = ('feat', 'fix', 'docs', 'refactor', 'chore', 'merge', 'perf',
          'release', 'revert', 'test', 'build', 'ci', 'style')
 MAX_BYTES = 5 * 1024 * 1024
-SUBJECT = re.compile(r'([a-z]+)\(([a-z]+)\): (.+)')
+SUBJECT = re.compile(r'([a-z]+)\(([a-z0-9][a-z0-9._-]*)\): (.+)')
 DENY_PATH = re.compile(
     r'(?i)(^|/)(?:\.env(?:[.-][^/]*)?|id_(?:rsa|dsa|ecdsa|ed25519)(?:$|\.)|'
     r'credentials(?:\.[^/]*)?$|service[-_]?account[^/]*\.json$|'

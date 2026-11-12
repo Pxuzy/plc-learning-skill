@@ -53,6 +53,7 @@ def run(text):
 class TitleEmojiGateTests(unittest.TestCase):
     def test_handbook_all_headings_emoji_passes(self):
         r = run('工程：测试\n讲解深度：代码深度\n' + BODY)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         self.assertNotIn('缺少表情', r.stdout + r.stderr)
 
     def test_module_heading_without_emoji_fails(self):

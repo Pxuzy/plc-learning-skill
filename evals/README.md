@@ -7,7 +7,7 @@ python3 -B evals/run.py --dry-run   # 只列出将运行的测试
 python3 -B evals/run.py             # 全部跑一遍
 ```
 
-`cases.md` 是人工行为验收清单，不由 runner 自动执行。
+`cases.md` 是人工行为验收清单，不由 runner 自动执行。`run.py` 只发现 `evals/test_*.py` 顶层文件；`evals/tests/` 下的宿主集成与治理测试需显式运行 `python3 -B -m unittest discover -s evals/tests -t .`，`check_foundation.py`、`check_local_behavior_artifacts.py` 按维护需要单独调用。
 
 模式 B 的局部讲解使用 `scripts/check_local_explanation.py <文档.md> --source <原始.st>`；检查器比较源码围栏按序拼接后的文本与输入文件，不归一空白或 CRLF/LF。若源文件末行没有换行，在最后一个源码围栏闭合行后紧接 `<!-- source-eof: none -->`，只排除 Markdown 围栏边界带来的一个换行。检查通过仍会打印待审语义提示。`evals/check_local_behavior_artifacts.py` 用于核验冻结清单、请求和候选哈希的一致性；不采样、不联网、不读凭据。
 
@@ -19,7 +19,7 @@ python3 -B evals/run.py             # 全部跑一遍
 
 人工行为验收还包含两类固定案例：厂商中立 Ladder 走查按可见图面分别记录串联路径、并联路径与分支汇合，裁切或歧义布局标为未知，不重建不可见的 IDE 网络；变量证据按具体变量及声明/作用域逐项记录，不把多个变量合并成“混合方向”。
 
-测试分组：
+测试分组（按主题列代表性文件；完整集合以 `git ls-files 'evals/test_*.py'` 为准，`run.py` 实际发现 51 个文件）：
 
 | 文件 | 覆盖 |
 |---|---|

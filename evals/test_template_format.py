@@ -76,7 +76,9 @@ class TemplateFormatTests(unittest.TestCase):
         result = self.run_check()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         report = json.loads(result.stdout)
-        self.assertEqual(report['checked'], 12)
+        # 资产数量以契约为准，不硬编码，避免新增模板时出现“改了契约还要改数字”。
+        contract = json.loads((ROOT / 'assets/template-format-contracts.json').read_text(encoding='utf-8'))
+        self.assertEqual(report['checked'], len(contract['templates']))
         self.assertFalse(report['errors'])
 
     def test_missing_heading_inside_copyable_fence_is_rejected(self):

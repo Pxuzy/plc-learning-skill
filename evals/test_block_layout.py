@@ -289,8 +289,13 @@ class BlockLayoutTests(unittest.TestCase):
     def test_current_sample_uses_canonical_structure(self):
         p=ROOT/'references/example-block-handbook.md'
         self.assertTrue(p.is_file(),'缺少块级正文示例')
+        text=p.read_text() if p.exists() else ''
+        self.assertIn('| 变量 | 数据类型 | 方向 | 含义 | 谁写谁读 | 证据等级 |',text,'样例前置变量表须为六列')
+        self.assertIn('**一句话说清**',text,'样例缺少一句话说清')
+        self.assertIn('**批判性审查**',text,'样例缺少批判性审查')
+        self.assertIn('**验证状态**',text,'样例缺少验证状态')
         if p.exists():
-            r=run(p.read_text());self.assertEqual(r.returncode,0,r.stdout+r.stderr)
+            r=run(text);self.assertEqual(r.returncode,0,r.stdout+r.stderr)
 
 # ---- 长闭合结构：完整保留一次 + 分支导航，与“一次一大段”区分 ----
 _ORIG_BLOCK = ('```st\nIF xRequest AND xPermit THEN // 当前请求必须同时满足普通许可才接收\n'

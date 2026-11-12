@@ -289,11 +289,14 @@ def test_library_positive_plc_blocks_are_all_checked():
     sys.path.insert(0, str(ROOT / "scripts"))
     from check_plc_comments import check_text
     block_count = 0
-    for path in [ROOT / "SKILL.md", *sorted((ROOT / "references").glob("*.md"))]:
+    files = [ROOT / "SKILL.md", *sorted((ROOT / "references").rglob("*.md"))]
+    for path in files:
         report = check_text(path.read_text(encoding="utf-8"))
         block_count += len(report["blocks"])
         assert not report["errors"], f"{path.name}: {report['errors']}"
     assert block_count >= 7, "正例源码围栏不能全部改成 text 逃避校验"
+    # 子目录参考同样纳入扫描；数量随资产增长，下面的下限只防“全部改成 text 逃避校验”。
+    assert any("workflows" in p.as_posix() for p in files), "子目录参考未被扫描"
 
 
 def test_original_comment_can_be_preserved_with_substantive_append_only_note():

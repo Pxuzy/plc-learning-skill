@@ -67,7 +67,8 @@ def test_uneven_table_fails():
 
 def test_chapter_order_reversal_and_duplicate_fail_but_gaps_pass():
     ordered = SAMPLES[0].read_text(encoding="utf-8")
-    gap = re.sub(r"(?ms)^<a id=\"ch6\"></a>\n## 六、.*?(?=^<a id=\"ch7\"></a>)", "", ordered)
+    gap = re.sub(r"(?ms)^<a id=\"ch6\"></a>\s*\n## 六、.*?(?=^<a id=\"ch7\"></a>)", "", ordered)
+    assert gap != ordered, "删除第六章的变异未生效，后续断言会失去意义"
     gap_path = Path(tempfile.mkdtemp()) / "gap.md"
     gap_path.write_text(gap, encoding="utf-8")
     assert run(gap_path).returncode == 0

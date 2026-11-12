@@ -19,7 +19,7 @@ python3 -B scripts/hooks.py doctor
 
 ## 提交格式
 
-规范源为[需求 §8](../requirements.md#8-git-迭代提交格式与隐私钩子)，机器政策唯一实现位于 `scripts/project_policy.py`。允许的 `type` 为 `feat`、`fix`、`docs`、`refactor`、`chore`、`merge`、`perf`、`release`、`revert`、`test`、`build`、`ci`、`style`。`scope` 只允许 ASCII 英文小写字母（`[a-z]+`）；整行 subject 最多 100 个 Unicode 字符，标题部分至少有一个中文汉字；subject 后必须空一行，后续至少有一条非空 `- ` 正文。不忽略注释行、不自动修复输入；空文件、不可读文件及非 UTF-8 均拒绝。
+规范源为[需求 §8](../requirements.md#8-git-迭代提交格式与隐私钩子)。提交格式有两处实现：`.githooks/commit-msg` 调用的 `scripts/git_privacy_gate.py message` 是**生效门禁**，`scripts/project_policy.py` 是离线校验镜像；两者的 `type`、`scope` 语法与正文规则须保持一致（`evals/tests/test_governance.py` 有对照用例）。允许的 `type` 为 `feat`、`fix`、`docs`、`refactor`、`chore`、`merge`、`perf`、`release`、`revert`、`test`、`build`、`ci`、`style`。`scope` 允许 ASCII 小写字母开头，其后可含小写字母、数字、点、连字符或下划线（`[a-z0-9][a-z0-9._-]*`）；整行 subject 最多 100 个 Unicode 字符，标题部分至少有一个中文汉字；subject 后必须空一行，后续至少有一条非空 `- ` 正文。不忽略注释行、不自动修复输入；空文件、不可读文件及非 UTF-8 均拒绝。
 
 ```text
 chore(repo): 准备仓库门禁

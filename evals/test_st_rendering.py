@@ -9,6 +9,10 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+# 个别用例直接 import scripts/ 下的辅助模块，不能依赖其它测试文件先改过 sys.path。
+for extra in (ROOT / "scripts",):
+    if str(extra) not in sys.path:
+        sys.path.insert(0, str(extra))
 SCRIPT = ROOT / "scripts" / "validate_st_rendering.py"
 
 

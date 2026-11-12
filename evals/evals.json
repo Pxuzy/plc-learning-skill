@@ -159,5 +159,6 @@
     }
   ],
   "status": "legacy",
-  "note": "历史模型评测快照（deepseek-chat，9 例），保留作记录；evals/run.py 不执行本文件，行为验收以 cases.md 与 test_*.py 为准。"
+  "note": "历史模型评测快照（deepseek-chat，9 例），保留作记录；evals/run.py 不执行本文件，行为验收以 cases.md 与 test_*.py 为准。 本文件为只读快照：不参与 evals/run.py，且不应被任何自动化入口加载执行（executable=false）。",
+  "executable": false
 }

@@ -17,7 +17,8 @@ def indexed_refs() -> set[str]:
 
 
 def test_every_reference_is_indexed_by_skill():
-    files = {p.name for p in (ROOT / "references").glob("*.md")}
+    files = {p.relative_to(ROOT / "references").as_posix()
+             for p in (ROOT / "references").rglob("*.md")}
     missing = sorted(files - indexed_refs())
     assert not missing, f"未被 SKILL 索引：{'、'.join(missing)}"
 
@@ -25,7 +26,7 @@ def test_every_reference_is_indexed_by_skill():
 def test_reference_links_never_point_to_unindexed_files():
     index = indexed_refs()
     bad: dict[str, list[str]] = {}
-    for path in (ROOT / "references").glob("*.md"):
+    for path in (ROOT / "references").rglob("*.md"):
         text = path.read_text(encoding="utf-8")
         targets = set(LINK_RE.findall(text)) - {path.name}
         dangling = sorted(t for t in targets if t not in index)
