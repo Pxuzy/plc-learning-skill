@@ -95,6 +95,34 @@ def test_d01_readme_version_claim_matches_current_policy() -> None:
     assert "不自动升版" in readme
 
 
+def test_entry_has_portable_metadata_and_independent_rules() -> None:
+    text = read('SKILL.md')
+    frontmatter = dict(line.split(':', 1) for line in text.split('---', 2)[1].splitlines() if ':' in line)
+    frontmatter = {key: value.strip().strip('"') for key, value in frontmatter.items()}
+    assert set(frontmatter) == {'name', 'description'}, frontmatter.keys()
+    assert frontmatter['description'] == '学习、讲解或分析 PLC 程序、工程结构、互锁与状态机，阅读 ST、梯形图等代码时使用。'
+    assert read('LICENSE').strip()
+    assert '用户说' not in text
+    assert '用户否掉的是' not in text
+    assert '只有用户明确否定' not in text
+    for heading in ('**讲解稿的语言/教学审查', '**讲解稿的精简修订'):
+        assert heading in text
+
+
+def test_documents_do_not_embed_conversation_history() -> None:
+    """检查实际文档而非报告；条件规则和PLC扫描时间线不属于对话记录。"""
+    forbidden = ["本" + "用户", "用户会" + "立刻回", "会被回" + "“",
+                 "本机上" + "一轮遗漏", "此前发出" + "的真实源码小样",
+                 "此前你" + "正在设计", "用户再" + "次说",
+                 "你的模板同时也要" + "满足我上面的要求"]
+    for path in sorted(ROOT.rglob("*.md")):
+        if any(part.startswith(".") for part in path.relative_to(ROOT).parts):
+            continue
+        text = path.read_text(encoding="utf-8")
+        for marker in forbidden:
+            assert marker not in text, f"{path.relative_to(ROOT)}: conversation-history residue"
+
+
 def main() -> int:
     tests = [
         test_s01_default_comment_mode_matches_official_reference,
@@ -104,6 +132,8 @@ def main() -> int:
         test_s08_heading_levels_are_defined_relative_to_parent,
         test_s09_group_by_native_objects_station_only_with_evidence,
         test_d01_readme_version_claim_matches_current_policy,
+        test_entry_has_portable_metadata_and_independent_rules,
+        test_documents_do_not_embed_conversation_history,
     ]
     failed = 0
     for test in tests:

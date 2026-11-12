@@ -93,6 +93,10 @@ def case(name, expect_code, keyword, doc=None, units=None, cli=None):
 
 case("全部对齐", 0, "通过", good_doc())
 case("行尾追加注释", 0, "通过", good_doc(comment=True))
+case("同一单元正序分片允许通过", 0, "通过", "# 文档\n\n" + block(3, 4) + block(5, 6) + "\n".join(block(u["start"], u["end"]) for u in UNITS[1:]))
+case("清单登记次序不替代源行次序", 0, "通过", good_doc(), list(reversed(UNITS)))
+case("交换完整源码块不得冒称顺序保真", 1, "源码顺序", "# 文档\n\n" + "\n".join(block(u["start"], u["end"]) for u in (UNITS[1], UNITS[0], UNITS[2], UNITS[3])))
+case("同一单元分片倒序不得通过", 1, "源码顺序", "# 文档\n\n" + block(5, 6) + block(3, 4) + "\n".join(block(u["start"], u["end"]) for u in UNITS[1:]))
 case("缺一个单元", 1, "缺失", good_doc().replace(block(11, 14), ""))
 case("同一段重复引用", 1, "重复", good_doc() + block(7, 10))
 case("改写一行", 1, "改写", good_doc().replace("nStep := 20;", "nStep := 30;"))

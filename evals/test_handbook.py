@@ -107,16 +107,18 @@ def test_handbook_template_has_required_chapters():
     assert "设计依据" in tpl and "取舍与代价" in tpl
 
 
-def test_handbook_template_requires_value_based_comment_guidance():
+def test_handbook_template_requires_default_per_line_comment_guidance():
     tpl=read("references","template-handbook.md")
     instructions=tpl.split("#### 2. 源码",1)[1].split("#### 3. 代码块整体讲解",1)[0]
-    for term in ("贴合上下文、有理解价值的行内注释","简单赋值、变量声明、调用、条件续行与分支逐项核对","执行行缺解释必须补齐或明确交付未完成","语义审查"):
+    for term in ("默认对每条非空源行（含条件续行与结构闭合行）在完整原行后追加","空白、纯注释与未闭合块注释内部行除外","低价值或重复注释仍判错","语义审查"):
         assert term in instructions,term
+    assert "有理解价值的行内注释" not in instructions
     assert "**逐句看**" not in tpl
     assert "处理过程" in tpl and "状态变化" in tpl
 
 def test_handbook_template_marks_process_table_as_fictional():
     tpl = read("references", "template-handbook.md")
+    assert "## 三、工艺主线" in tpl and '<a id="ch4">' in tpl, "工艺主线或第四章锚点缺失，切片无意义"
     process = tpl.split("## 三、工艺主线", 1)[1].split('<a id="ch4">', 1)[0]
     assert "虚构示例" in process
     assert "未知" in process
@@ -128,9 +130,9 @@ def test_st_template_uses_generic_evidence_and_inline_comment_rules():
     assert "来源/对象" in instructions
     assert "XML" in instructions and "文件路径" in instructions
     assert "`none`" in instructions and "限制" in instructions
-    assert "尽量逐行附上贴合上下文的行内注释" in instructions
-    assert "简单赋值" in instructions
-    assert "未解释行" in instructions and "行内" in instructions
+    assert "每条非空行（含条件续行与结构闭合行）在完整原行后追加 // AI: 短句" in instructions
+    assert "空白与纯注释行除外" in instructions
+    assert "行内" in instructions
     assert "语义审查" in instructions
     assert "| 类型 | 原始变量/实例 | 作用 | 来源/去向 | 来源证据 | 证据等级 |" in template
     assert "| 来源 | 交互 | 目标 | 条件/参数 | 影响 | 来源证据 |" in template
@@ -218,7 +220,7 @@ def test_maintenance_verification_points_to_four_named_commands():
     skill = read("SKILL.md")
     assert "references/workflow.md" in skill
     from test_entry_routing import read_heading
-    maintenance = read_heading("SKILL.md", "### 维护入口（仅修改技能时加载）")
+    maintenance = read_heading("SKILL.md", "### 维护入口与模板来源核对")
     assert all(term in maintenance for term in ("维护", "审计", "技能维护与成果保护", "技能维护回归"))
     verification = read_heading("references/workflow.md", "### 技能维护回归")
     for command in ("evals/run.py", "validate_skill.py", "validate_template_index.py", "git diff --check"):
@@ -237,7 +239,7 @@ def main():
         test_handbook_guide_defines_three_layers_and_plain_language_ban,
         test_module_teaching_order_is_consistent_across_guide_and_entrypoint,
         test_handbook_template_has_required_chapters,
-        test_handbook_template_requires_value_based_comment_guidance,
+        test_handbook_template_requires_default_per_line_comment_guidance,
         test_handbook_template_marks_process_table_as_fictional,
         test_st_template_uses_generic_evidence_and_inline_comment_rules,
         test_module_details_use_compact_numbered_outline,

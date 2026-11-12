@@ -206,6 +206,7 @@ def run(
     blocks = parse_doc(doc_path)
     doc_owner: dict[int, int] = {}
     covered_by_unit: dict[str, set[int]] = {uid: set() for uid in units}
+    previous_range: tuple[int, int] | None = None
 
     for b in blocks:
         if b["lang"] not in CHECK_LANGS:
@@ -228,6 +229,11 @@ def run(
         if start < 1 or end > len(source) or start > end:
             rep.extra.append(f"第 {b['line']} 行：标注范围 L{start}-L{end} 越界")
             continue
+        if previous_range is not None and start <= previous_range[1]:
+            rep.meta.append(
+                f"第 {b['line']} 行：源码顺序错误：L{start}-L{end} 出现在 L{previous_range[0]}-L{previous_range[1]} 之后；代码块须按源行递增"
+            )
+        previous_range = (start, end)
         for ln in range(start, end + 1):
             if ln in doc_owner:
                 rep.duplicate.append(f"L{ln} 被第 {doc_owner[ln]} 行与第 {b['line']} 行重复引用")

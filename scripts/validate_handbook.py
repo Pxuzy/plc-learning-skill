@@ -18,8 +18,8 @@ from collections import Counter
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from check_plc_comments import PLC_LANGS, check_text, check_review, coverage_summary, fences
-from markdown_fences import parse_fences, body_view
+from check_plc_comments import PLC_LANGS, check_text, check_review, coverage_summary, fences, check_condition_ai, check_default_annotations
+from markdown_fences import parse_fences, body_view, fence_diagnostics
 from source_annotations import source_annotation
 from block_layout import uses_block_layout, check_block_layout
 
@@ -226,9 +226,14 @@ def check_safety_boundary(text: str, errors: list[str]) -> None:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("document", type=Path)
+    ap.add_argument("--require-condition-ai", action="store_true", help="兼容旧调用：默认逐行注释已覆盖条件行")
+    ap.add_argument("--original-source", action="store_true", help="仅当用户当次明确要求原样源码或归档时使用；不要求新增注释")
+    ap.add_argument("--legacy-selective", action="store_true", help="仅复核历史选择性注释夹具；日常交付不得使用")
     ap.add_argument("--final", action="store_true", help="最终稿：拒绝未完成覆盖状态")
     ap.add_argument("--comment-review", type=Path, help="当前文档的逐块注释语义审查 JSON，最终稿必需")
     args = ap.parse_args(argv)
+    if args.original_source and (args.legacy_selective or args.require_condition_ai):
+        ap.error('原样源码模式与注释要求互斥')
 
     if not args.document.is_file():
         print(f"ERROR 找不到文件：{args.document}")
@@ -237,7 +242,7 @@ def main(argv: list[str] | None = None) -> int:
     raw = data.decode("utf-8-sig")
     prose = body_view(raw)
     text = EMOJI_RE.sub("", prose)
-    errors: list[str] = []
+    errors: list[str] = fence_diagnostics(raw)
     warnings: list[str] = []
 
     if "文档类型：handbook" not in text:
@@ -294,8 +299,13 @@ def main(argv: list[str] | None = None) -> int:
         for chapter in sorted(set(present_chapters) - requested_chapters):
             errors.append(f"章节超出适用章节范围：{chapter}")
 
-    comment_report = check_text(raw)
+    comment_report = check_text(raw, require_units=not args.original_source)
     errors.extend(comment_report["errors"])
+    if not args.original_source and not args.legacy_selective:
+        # 默认交付要求逐行业务尾注，包括结构闭合行；空白与纯注释行不补。
+        errors.extend(check_default_annotations(raw))
+    if args.require_condition_ai:
+        errors.extend(error for error in check_condition_ai(raw) if error not in errors)
     errors.extend(check_review(raw, comment_report["blocks"], args.comment_review, args.final, hashlib.sha256(data).hexdigest()))
     code_blocks = [block for block in fences(raw) if block["lang"] in PLC_LANGS]
     for block in code_blocks:

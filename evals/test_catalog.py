@@ -58,7 +58,7 @@ class CatalogTests(unittest.TestCase):
         self.assertIn(f"`{CATALOG}`", text)
         self.assertFalse(asset_rows(text), "入口不重复 catalog 的资产登记行")
         self.assertFalse({p for p in ASSET_RE.findall(text) if p.startswith("evals/")})
-        maintenance = text.split("### 维护入口（仅修改技能时加载）", 1)[1].split("## 参考文件", 1)[0]
+        maintenance = text.split("### 维护入口与模板来源核对", 1)[1].split("## 参考文件", 1)[0]
         for route in ("references/workflow.md", "技能维护与成果保护", "技能维护回归"):
             self.assertIn(route, maintenance)
         workflow = (ROOT / "references/workflow.md").read_text(encoding="utf-8")
@@ -86,7 +86,7 @@ class CatalogTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory(prefix="plc-catalog-")
         root = Path(self.tmp.name) / ROOT.name
         root.mkdir()
-        for directory in ("references", "scripts", "evals", "templates"):
+        for directory in ("references", "scripts", "evals", "templates", "assets"):
             shutil.copytree(ROOT / directory, root / directory, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
         for name in ("SKILL.md", "LICENSE", "CHANGELOG.md"):
             shutil.copy2(ROOT / name, root / name)
@@ -114,7 +114,8 @@ class CatalogTests(unittest.TestCase):
         (root / "references/topic-probe.md").write_text("# 专题\n", encoding="utf-8")
         path = root / CATALOG
         path.write_text(path.read_text(encoding="utf-8") +
-                        "\n| `references/topic-probe.md` | [夹紧信号证据专题](topic-probe.md) | 追踪夹紧信号 | 人工 | 当前 |\n", encoding="utf-8")
+                        "\n| 资产 | 职责 | 加载时机 / 场景 | 权威规则 / 验证器 | 状态 / 适用范围 |\n|---|---|---|---|---|\n"
+                        "| `references/topic-probe.md` | [夹紧信号证据专题](topic-probe.md) | 追踪夹紧信号 | 人工 | 当前 |\n", encoding="utf-8")
         self.check(root, 0, "0 个错误，0 个警告")
 
     def test_catalog_symlink_cannot_cross_declared_directory_inside_root(self):
@@ -127,7 +128,7 @@ class CatalogTests(unittest.TestCase):
 
     def test_catalog_unknown_directory_rows_are_not_silently_ignored(self):
         root = self.fixture()
-        (root / "assets").mkdir()
+        (root / "assets").mkdir(exist_ok=True)
         (root / "assets/x.md").write_text("# 错误目录中的真实文件\n", encoding="utf-8")
         path = root / CATALOG
         path.write_text(path.read_text(encoding="utf-8") +

@@ -352,6 +352,7 @@ def collect_tables(masked: str):
 def array_bounds(masked: str) -> dict[str, tuple[int, int]]:
     constants = {match.group(1).upper(): int(match.group(2))
                  for match in _INT_CONST.finditer(masked)}
+    # 键统一 casefold，调用侧按同一规则查找。
     bounds: dict[str, tuple[int, int]] = {}
     for match in _ARRAY_DECL.finditer(masked):
         close = masked.find("]", match.end())
@@ -370,7 +371,7 @@ def array_bounds(masked: str) -> dict[str, tuple[int, int]]:
         low, high = value(parts.group(1)), value(parts.group(2))
         if low is None or high is None:
             continue
-        bounds[match.group(1)] = (low, high)
+        bounds[match.group(1).casefold()] = (low, high)
     return bounds
 
 
@@ -601,10 +602,12 @@ def check_constants(masked: str) -> list[Finding]:
     bounds = array_bounds(masked)
     for match in _INDEX_USE.finditer(masked):
         name = match.group(1)
-        if name.upper() in {"ARRAY", "STRING", "WSTRING"} or name not in bounds:
+        # ST 标识符大小写不敏感：声明与使用的大小写差异不得导致漏检。
+        key = name.casefold()
+        if name.upper() in {"ARRAY", "STRING", "WSTRING"} or key not in bounds:
             continue
         value = int(match.group(2))
-        low, high = bounds[name]
+        low, high = bounds[key]
         if value < low or value > high:
             line = bisect.bisect_right(starts, match.start())
             findings.append(Finding(

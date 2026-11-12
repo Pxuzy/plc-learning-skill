@@ -225,7 +225,7 @@ CASE nStateCur OF
                 IF xHomeOk THEN
                     nStateCur := nStDone;
                 END_IF;
-            2, 3:
+            2, 3:  (* 合成夹具：绝对/相对定位共用同一完成判据，未按指令实例分别锁存 *)
                 IF stMoveAbs.xDone OR stMoveRel.xDone THEN
                     nStateCur := nStDone;
                 END_IF;

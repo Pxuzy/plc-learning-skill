@@ -17,6 +17,8 @@ class LayoutPlainTests(unittest.TestCase):
     def test_modules_are_h3_not_peer_of_chapters(self):
         self.assertIn('模块一律 `###`', self.guide)
         self.assertIn('不得让模块与章同级', self.guide)
+        catalog=(ROOT/'references/catalog.md').read_text()
+        self.assertIn('单对象模块 H3、小节 H4；多工位工位 H3、模块 H4、小节 H5',catalog)
 
     def test_each_module_opens_with_plain_sentence(self):
         self.assertIn('一句话说清', self.guide)

@@ -20,18 +20,33 @@
 
 改动前先读 `references/workflow.md` 的「技能维护与成果保护」，并按其要求把整份技能复制到目录外备份、逐文件记录 SHA-256。备份不替代提交，提交也不替代备份。
 
-改动后跑四条维护校验（不改 PLC 程序、不覆盖既有夹具）：
+改动后跑五条维护校验（不改 PLC 程序、不覆盖既有夹具）：
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 PYTHONUTF8=1 python -X utf8 -B evals/run.py
 PYTHONDONTWRITEBYTECODE=1 PYTHONUTF8=1 python -X utf8 -B scripts/validate_skill.py . --strict
 PYTHONDONTWRITEBYTECODE=1 PYTHONUTF8=1 python -X utf8 -B scripts/validate_template_index.py
+PYTHONDONTWRITEBYTECODE=1 PYTHONUTF8=1 python -X utf8 -B scripts/validate_template_format.py .
 git diff --check
 ```
 
 Windows 上必须显式用 UTF-8 运行，否则默认代码页会让中文与表情样例读写报编码错，看起来像测试失败。
 
-已知基线失败不属于本轮回归：`test_catalog.py` 与 `test_first_principles_contract.py` 的符号链接用例报 `WinError 1314`（当前账户没有创建符号链接的特权），其余数项为样例与校验器契约不一致。报告时必须把环境限制、既有问题与本轮改动分开写，不能合并成「全部通过」。
+回归报告须区分环境限制、可复现的基线失败和改动引入的问题。Windows 账户缺少符号链接权限时，相关用例可能报 `WinError 1314`；应记录实际环境与用例结果，不把某次运行状态写成所有环境的既定失败，也不能把未执行项合并为「全部通过」。
+
+## Markdown 格式与渲染门禁
+
+格式以 CommonMark 加管道表格扩展为准；不以编辑器预览截图或「至少生成一张表」代替逐表验收。首次运行先安装解析器依赖：
+
+```bash
+python -m pip install -r scripts/requirements-markdown.txt
+python -B scripts/markdown_syntax.py .
+python -B scripts/check_markdown_format.py 讲解稿.md --strict --json
+```
+
+整包检查覆盖 `SKILL.md`、`README.md`、`CHANGELOG.md`、`references/**/*.md` 与 `templates/**/*.md`；测试负例、开发计划不混入交付格式验收。报告逐张列出已解析表格的起止行、列数与行数，并检查疑似表格是否遗漏，拒绝列截断/补空、正文被吞成表行、HTML 吞表、隐藏占位标签、标题/列表/围栏空行问题。单篇格式命令另核对本地链接、显式锚点和引用式链接。严格技能校验自动执行整包语法检查与既有本地链接检查；缺解析器会报错，不能当作通过。
+
+这是指定 Markdown 方言的确定性验收，不保证所有编辑器、Telegram 消息或专用插件的呈现完全相同；Mermaid 图形布局、外部网页可访问性和 PLC 语义需要各自验证。
 
 ## Git 约定
 
@@ -43,7 +58,7 @@ Windows 上必须显式用 UTF-8 运行，否则默认代码页会让中文与�
 
 ### 提交标题
 
-```
+```text
 <type>(<scope>): <中文说明>
 ```
 
@@ -51,7 +66,7 @@ Windows 上必须显式用 UTF-8 运行，否则默认代码页会让中文与�
 
 ### 钩子
 
-新克隆须在仓库根目录执行 `git config core.hooksPath .githooks` 和 `git config commit.template .gitmessage`；钩子不会随 clone 自动启用：
+新克隆先执行 `python3 -B scripts/hooks.py install`（检测到宿主隐私钩子时会建立 `privacy.originalHooksPath` 委托；无宿主时用 `install --local-only`），再执行 `git config commit.template .gitmessage`。只有无宿主的临时仓库才可直接 `git config core.hooksPath .githooks`——那会绕开宿主全局钩子链。钩子不会随 clone 自动启用：
 
 - `pre-commit`：扫描整个真实暂存树，拒绝私有标识/源码哈希指纹、凭据、IP、本机绝对路径、个人邮箱、二进制和本地产物；再跑严格结构、模板索引和暂存区空白检查。`git add -f` 不能豁免隐私检查。完整回归按需用 `SKILL_PRECOMMIT_FULL=1 git commit ...`。
 - `commit-msg`：校验英文 type、小写 scope、中文标题、空行及分条正文，并扫描消息隐私。

@@ -86,6 +86,17 @@ END_IF;
 def run(text):
     with tempfile.TemporaryDirectory() as d:
         p=Path(d)/'book.md';p.write_text(text)
+        # 版式/结构夹具按原样源码模式校验：本文件不承担逐行注释契约。
+        return subprocess.run([sys.executable,'-B',str(ROOT/'scripts/validate_handbook.py'),str(p),'--original-source'],capture_output=True,text=True)
+
+def local_errors(text):
+    """局部版式夹具同样按原样源码模式：注释契约由 test_default_annotations 覆盖。"""
+    return check_text(text,LOCAL_SOURCE,allow_ai_tails=False,require_annotations=False)['errors']
+
+def run_default(text):
+    """默认（逐行注释）模式：只用于断言注释契约本身的用例。"""
+    with tempfile.TemporaryDirectory() as d:
+        p=Path(d)/'book.md';p.write_text(text)
         return subprocess.run([sys.executable,'-B',str(ROOT/'scripts/validate_handbook.py'),str(p)],capture_output=True,text=True)
 
 class BlockLayoutTests(unittest.TestCase):
@@ -103,7 +114,7 @@ class BlockLayoutTests(unittest.TestCase):
                 r=run(text);self.assertNotEqual(r.returncode,0,r.stdout);self.assertIn('关键变量',r.stdout)
 
     def test_local_variable_table_must_precede_module_heading(self):
-        self.assertEqual(check_text(LOCAL_VALID,LOCAL_SOURCE)['errors'],[])
+        self.assertEqual(local_errors(LOCAL_VALID),[])
         a=LOCAL_VALID.index('| 变量 |');b=LOCAL_VALID.index('\n\n<a id="m01">',a)
         table=LOCAL_VALID[a:b]
         moved=LOCAL_VALID[:a]+LOCAL_VALID[b:]
@@ -114,11 +125,11 @@ class BlockLayoutTests(unittest.TestCase):
         self.assertIn('模块标题之前',errors)
 
     def test_local_one_line_summary_and_source_location_have_fixed_sections(self):
-        self.assertEqual(check_text(LOCAL_VALID,LOCAL_SOURCE)['errors'],[])
+        self.assertEqual(local_errors(LOCAL_VALID),[])
         for label in ('一句话说清','来源定位'):
             original=re.search(rf'(?m)^\*\*{label}\*\*：[^\n]+\n\n',LOCAL_VALID)[0]
             moved=LOCAL_VALID.replace(original,'',1).replace('<!-- 本段已完 -->',original+'<!-- 本段已完 -->',1)
-            errors=check_text(moved,LOCAL_SOURCE)['errors']
+            errors=local_errors(moved)
             self.assertTrue(errors)
             self.assertTrue(all(label in item for item in errors),errors)
 
@@ -126,7 +137,7 @@ class BlockLayoutTests(unittest.TestCase):
         for label in ('一句话说清','来源定位'):
             original=re.search(rf'(?m)^\*\*{label}\*\*：[^\n]+',LOCAL_VALID)[0]
             for replacement in ('> '+original,'- '+original,'```text\n'+original+'\n```'):
-                errors=check_text(LOCAL_VALID.replace(original,replacement,1),LOCAL_SOURCE)['errors']
+                errors=local_errors(LOCAL_VALID.replace(original,replacement,1))
                 self.assertTrue(any(label in item for item in errors),errors)
         a=LOCAL_VALID.index('| 变量 |');b=LOCAL_VALID.index('\n\n<a id="m01">',a)
         table=LOCAL_VALID[a:b]
@@ -150,7 +161,8 @@ class BlockLayoutTests(unittest.TestCase):
                 r=run(bad);self.assertNotEqual(r.returncode,0,r.stdout)
     def test_missing_inline_comment_is_still_rejected(self):
         bad=VALID.replace(' // 留下启动记忆；输入随后撤销不构成本段复位','')
-        r=run(bad);self.assertNotEqual(r.returncode,0,r.stdout);self.assertIn('缺少有效行内注释',r.stdout)
+        # 新默认契约：缺尾注由逐行门禁拦下，而不是退回旧的 per-unit 覆盖报错。
+        r=run_default(bad);self.assertNotEqual(r.returncode,0,r.stdout);self.assertIn('默认逐行注释缺失',r.stdout)
     def test_canonical_template_and_entry_default_to_block_level(self):
         t=(ROOT/'references/template-handbook.md').read_text()
         self.assertIn('#### 3. 代码块整体讲解',t)
@@ -277,8 +289,13 @@ class BlockLayoutTests(unittest.TestCase):
     def test_current_sample_uses_canonical_structure(self):
         p=ROOT/'references/example-block-handbook.md'
         self.assertTrue(p.is_file(),'缺少块级正文示例')
+        text=p.read_text() if p.exists() else ''
+        self.assertIn('| 变量 | 数据类型 | 方向 | 含义 | 谁写谁读 | 证据等级 |',text,'样例前置变量表须为六列')
+        self.assertIn('**一句话说清**',text,'样例缺少一句话说清')
+        self.assertIn('**批判性审查**',text,'样例缺少批判性审查')
+        self.assertIn('**验证状态**',text,'样例缺少验证状态')
         if p.exists():
-            r=run(p.read_text());self.assertEqual(r.returncode,0,r.stdout+r.stderr)
+            r=run(text);self.assertEqual(r.returncode,0,r.stdout+r.stderr)
 
 # ---- 长闭合结构：完整保留一次 + 分支导航，与“一次一大段”区分 ----
 _ORIG_BLOCK = ('```st\nIF xRequest AND xPermit THEN // 当前请求必须同时满足普通许可才接收\n'

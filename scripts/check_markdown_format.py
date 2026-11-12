@@ -23,17 +23,27 @@ LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 
 
 def main() -> int:
-    if len(sys.argv) != 2:
-        print("用法：python3 scripts/check_markdown_format.py <document.md>")
-        return 1
-    path = Path(sys.argv[1]).resolve()
+    import argparse
+    import json
+    from markdown_syntax import inspect_markdown
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument('document', type=Path)
+    ap.add_argument('--strict', action='store_true', help='严格检查正文空行、标题层级等可移植格式')
+    ap.add_argument('--json', action='store_true')
+    args = ap.parse_args()
+    path = args.document.resolve()
     if not path.is_file():
         print(f"ERROR 找不到文档：{path}")
         return 1
 
     text = path.read_text(encoding="utf-8")
     lines = body_view(text).splitlines()
-    errors: list[str] = fence_diagnostics(text)
+    try:
+        rendered = inspect_markdown(text, path, strict=args.strict)
+    except RuntimeError as exc:
+        print(str(exc))
+        return 2
+    errors: list[str] = [f"L{x['line']} {x['rule']}: {x['detail']}" for x in rendered['issues']]
     warnings: list[str] = []
 
     # F1 元信息块
@@ -67,7 +77,8 @@ def main() -> int:
     if dup:
         warnings.append(f"F10 章节编号重复：{'、'.join(sorted(dup))}")
 
-    # F4/F5 表格列数
+    # F4/F5: exact row width is checked against rendered AST, respecting escaped pipes.
+    from markdown_syntax import cells as table_cells
     table: list[tuple[int, list[str]]] = []
 
     def check_table(rows: list[tuple[int, list[str]]]) -> None:
@@ -88,7 +99,7 @@ def main() -> int:
 
     for i, line in enumerate(lines, 1):
         if line.strip().startswith("|"):
-            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            cells = table_cells(line)
             table.append((i, cells))
         else:
             check_table(table)
@@ -122,6 +133,10 @@ def main() -> int:
         if not (path.parent / target).exists():
             warnings.append(f"F8 链接目标不存在：{target}")
 
+    if args.json:
+        rendered.update({'file': path.name, 'errors': len(errors), 'warnings': warnings})
+        print(json.dumps(rendered, ensure_ascii=False, indent=2))
+        return int(bool(errors))
     print(f"format: {path.name}  lines: {len(lines)}")
     for w in warnings:
         print(f"WARN  {w}")

@@ -159,11 +159,13 @@ def check_batch(batch: Path, candidate: Path, manifest_name: str='frozen-manifes
     # 所有候选、请求、原稿和审查哈希均验证后，才开始格式评分。
     original_passed=0;corrected_passed=0;corrected_executed=0;reviewed=0;accepted=0;results=[]
     for identifier,content,corrected,review,returned,requested in validated:
-        original_result=check_text(content,source)
+        # 本批产物是“原码”模式（源码逐字符保真、不追加 AI 尾注），
+        # 因此按原样源码语义评分：不剥离尾注、不要求新增逐行注释。
+        original_result=check_text(content,source,allow_ai_tails=False,require_annotations=False)
         original_passed+=int(not original_result['errors'])
         corrected_result=None
         if corrected is not None:
-            corrected_executed+=1;corrected_result=check_text(corrected,source)
+            corrected_executed+=1;corrected_result=check_text(corrected,source,allow_ai_tails=False,require_annotations=False)
             corrected_passed+=int(not corrected_result['errors'])
         if review is not None:
             reviewed+=int(review['reviewed']);accepted+=int(review['reviewed'] and review['accepted'])

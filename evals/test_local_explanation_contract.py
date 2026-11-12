@@ -37,7 +37,10 @@ def filled_skeleton(path):
         text = text.split('【输出格式】', 1)[1].split('【代码】', 1)[0]
         text = text[text.index('# <对象与范围>'):]
     else:
-        text = next(b['text'] for b in parse_fences(text) if b['lang'] == 'markdown')
+        from validate_template_format import marked_sections
+        sections = marked_sections(text)
+        assert sections, '模板缺少可见正文边界'
+        text = sections[0][0]
     # 按实际字段填同一份 TON 教学事实；不生成任何缺失字段或表头。
     fixture_tables = {}
     from local_explanation_contract import tables
@@ -86,7 +89,7 @@ class LocalContractTests(unittest.TestCase):
         bad = VALID
         for row in rows[2:]:
             bad = bad.replace(row, '')
-        self.reject(bad, '3')
+        self.reject(bad, '至少 3 个不同执行序号')
 
     def test_execution_count_deduplicates_track_ordinals_and_accepts_time_labels(self):
         duplicate = re.sub(r'(?m)^\| A 第\d+次 ', '| A 第1次 ', VALID)

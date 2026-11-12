@@ -15,6 +15,9 @@ class UnitLanguageTests(unittest.TestCase):
     def test_unit_inventory_is_defined(self):
         for kw in ('语言单元清点', '清点表', '判定依据', '综合结论'):
             self.assertIn(kw, self.reading)
+        # 清点表须给出可核对的列，而不是只有一个标题。
+        for column in ('单元', '位置', '语言', '判定依据', '证据等级'):
+            self.assertIn(column, self.reading)
 
     def test_mixed_languages_require_inventory_not_single_label(self):
         self.assertIn('混排（见单元清点表）', self.guide)

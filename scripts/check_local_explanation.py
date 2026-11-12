@@ -11,7 +11,7 @@ import argparse
 from pathlib import Path
 import re
 from block_layout import check_block_layout, modules, field
-from check_plc_comments import lex_lines, logical_units, CLOSE
+from check_plc_comments import lex_lines, logical_units, CLOSE, check_default_annotations
 from markdown_fences import PLC_LANGS, ST_LANGS, parse_fences, body_view, fence_diagnostics
 from local_explanation_contract import BLOCK_PARTS, SECTION_FIELDS, field_pattern, prose_content
 
@@ -105,7 +105,8 @@ def coverage_review(raw: str, source: str, required: bool = True) -> tuple[list[
     return errors, pending
 
 
-def check_text(raw: str, source: str, allow_ai_tails: bool = False) -> dict:
+def check_text(raw: str, source: str, allow_ai_tails: bool = True,
+               require_annotations: bool = True) -> dict:
     errors = fence_diagnostics(raw)
     errors.extend(check_block_layout(raw,mode='local'))
     prose = body_view(raw)
@@ -166,6 +167,8 @@ def check_text(raw: str, source: str, allow_ai_tails: bool = False) -> dict:
     required_coverage = any(any(term in value for term in beginner_markers) for value in depth + readers)
     coverage_errors, pending = coverage_review(raw,source,required=required_coverage)
     errors.extend(coverage_errors)
+    if require_annotations:
+        errors.extend(check_default_annotations(raw))
     return {'errors':errors,'pending':pending}
 
 
@@ -173,10 +176,15 @@ def main(argv: list[str] | None = None) -> int:
     ap=argparse.ArgumentParser(description=__doc__)
     ap.add_argument('document',type=Path)
     ap.add_argument('--source',required=True,type=Path)
-    ap.add_argument('--allow-ai-tails',action='store_true',help='仅允许完整原始行之后追加非空 // AI: 尾注；逐行核对原码前缀与换行')
+    ap.add_argument('--allow-ai-tails',action='store_true',help='兼容旧调用：默认已允许完整原行后追加 // AI: 尾注')
+    ap.add_argument('--original-source',action='store_true',help='仅当用户当次明确要求原样源码或归档时使用；不要求新增注释')
     args=ap.parse_args(argv)
+    if args.original_source and args.allow_ai_tails:
+        ap.error('原样源码模式与追加 AI 尾注模式互斥')
+    annotated = not args.original_source
     try:
-        result=check_text(args.document.read_bytes().decode('utf-8'),args.source.read_bytes().decode('utf-8'),allow_ai_tails=args.allow_ai_tails)
+        result=check_text(args.document.read_bytes().decode('utf-8'),args.source.read_bytes().decode('utf-8'),
+                          allow_ai_tails=annotated,require_annotations=annotated)
     except (OSError,UnicodeError) as exc:
         print('ERROR 读取输入失败：'+str(exc));return 1
     for error in result['errors']: print('ERROR '+error)

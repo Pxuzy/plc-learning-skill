@@ -9,6 +9,10 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+# 个别用例直接 import scripts/ 下的辅助模块，不能依赖其它测试文件先改过 sys.path。
+for extra in (ROOT / "scripts",):
+    if str(extra) not in sys.path:
+        sys.path.insert(0, str(extra))
 SCRIPT = ROOT / "scripts" / "validate_st_rendering.py"
 
 
@@ -115,6 +119,32 @@ def test_invalid_indented_st_fence_has_line_diagnostic():
     expect_invalid_at("    ```st\nxClamp := TRUE;\n    ```\n", 1)
 
 
+def test_joined_closing_fence_has_explicit_line_error():
+    from markdown_fences import fence_diagnostics
+    for marker in ('```', '~~~'):
+        for tail in ('', '\n' + marker + '\n## 后续说明\n正文\n'):
+            text = marker + 'st\nx := TRUE;' + marker + tail
+            errors = fence_diagnostics(text)
+            assert any('L2' in e and '闭合围栏必须独立一行' in e for e in errors), errors
+            for script in ('validate_st_rendering.py', 'check_document_layout.py', 'check_markdown_format.py', 'validate_handbook.py', 'check_local_explanation.py'):
+                if script == 'check_local_explanation.py':
+                    with tempfile.TemporaryDirectory() as directory:
+                        doc = Path(directory) / 'doc.md'
+                        source = Path(directory) / 'source.st'
+                        doc.write_text(text)
+                        source.write_text('x := TRUE;\n')
+                        result = subprocess.run([sys.executable, '-B', str(ROOT / 'scripts' / script),
+                                                 str(doc), '--source', str(source)], capture_output=True, text=True)
+                else:
+                    result = run_script(ROOT / 'scripts' / script, text)
+                assert result.returncode == 1 and '闭合围栏必须独立一行' in result.stdout, (script, result.stdout, result.stderr)
+
+
+def test_valid_fence_indentation_and_string_literals_are_not_joined_closers():
+    expect_valid('```st\nx := TRUE;\n  ```  \n')
+    expect_valid("```st\ns := 'literal ```';\n```\n")
+
+
 def main() -> int:
     tests = [test_format_checker_accepts_nested_short_fence_example,
              test_layout_checker_uses_matching_fence_character_and_length,
@@ -129,7 +159,9 @@ def main() -> int:
              test_quoted_st_fence_is_accepted_and_counted,
              test_unclosed_quoted_st_fence_reports_opening_line,
              test_inline_quoted_fence_marker_is_not_an_error,
-             test_invalid_indented_st_fence_has_line_diagnostic]
+             test_invalid_indented_st_fence_has_line_diagnostic,
+             test_joined_closing_fence_has_explicit_line_error,
+             test_valid_fence_indentation_and_string_literals_are_not_joined_closers]
     failed = 0
     for test in tests:
         try:

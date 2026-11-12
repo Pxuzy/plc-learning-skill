@@ -1,0 +1,2 @@
+# Required by strict Markdown syntax/rendering checks.
+markdown-it-py>=3,<5

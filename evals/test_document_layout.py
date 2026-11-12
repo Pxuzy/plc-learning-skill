@@ -67,7 +67,8 @@ def test_uneven_table_fails():
 
 def test_chapter_order_reversal_and_duplicate_fail_but_gaps_pass():
     ordered = SAMPLES[0].read_text(encoding="utf-8")
-    gap = re.sub(r"(?ms)^<a id=\"ch6\"></a>\n## 六、.*?(?=^<a id=\"ch7\"></a>)", "", ordered)
+    gap = re.sub(r"(?ms)^<a id=\"ch6\"></a>\s*\n## 六、.*?(?=^<a id=\"ch7\"></a>)", "", ordered)
+    assert gap != ordered, "删除第六章的变异未生效，后续断言会失去意义"
     gap_path = Path(tempfile.mkdtemp()) / "gap.md"
     gap_path.write_text(gap, encoding="utf-8")
     assert run(gap_path).returncode == 0
@@ -85,10 +86,21 @@ def test_chapter_order_reversal_and_duplicate_fail_but_gaps_pass():
     assert "章节顺序错误" in result.stdout
 
 
+def test_double_digit_chapters_keep_numeric_order():
+    with tempfile.TemporaryDirectory() as temp:
+        path=Path(temp)/'chapters.md'
+        path.write_text('# 文档\n\n## 十、阶段\n\n## 十一、阶段\n\n## 二十、阶段\n\n## 二十一、阶段\n')
+        assert run(path).returncode == 0, run(path).stdout
+        path.write_text('# 文档\n\n## 二十一、阶段\n\n## 十二、阶段\n')
+        assert run(path).returncode == 1
+        assert '21 → 12' in run(path).stdout
+
+
 def main() -> int:
     tests = [test_samples_pass, test_unclosed_fence_fails, test_heading_level_jump_fails,
              test_meaningless_heading_fails, test_uneven_table_fails,
-             test_chapter_order_reversal_and_duplicate_fail_but_gaps_pass]
+             test_chapter_order_reversal_and_duplicate_fail_but_gaps_pass,
+             test_double_digit_chapters_keep_numeric_order]
     failed = 0
     for t in tests:
         try:

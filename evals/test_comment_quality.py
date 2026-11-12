@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -15,7 +16,9 @@ import _harness as harness
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts/check_plc_comments.py"
-BASE = (ROOT / "references/example-handbook.md").read_text(encoding="utf-8")
+# Historical selective-comment mutation fixture: strip only added AI tails;
+# bundled positive examples are checked with the new default in test_default_annotations.
+BASE = re.sub(r" // AI: [^\n]*", "", (ROOT / "references/example-handbook.md").read_text(encoding="utf-8"))
 ANCHOR = "    yClampValve := TRUE;              // 本段置位夹紧阀输出，清除条件未出现在当前源码"
 GOOD = "本示例请求保留到下一次扫描，是否另有撤销路径需核对其他写入点"
 
@@ -37,7 +40,9 @@ def run_text(body: str, lang: str = "st", extra: bool = False):
     with tempfile.TemporaryDirectory() as td:
         path = Path(td) / "handbook.md"
         path.write_text(text, encoding="utf-8")
-        return harness.run(ROOT / "scripts/validate_handbook.py", str(path))
+        # 本文件复核历史选择性注释夹具：用 --legacy-selective 保留 per-unit
+        # 覆盖/质量/语义审查断言，只跳过新默认的逐行尾注门禁。
+        return harness.run(ROOT / "scripts/validate_handbook.py", str(path), "--legacy-selective")
 
 
 def expect(body: str, code: int = 1, lang: str = "st", extra: bool = False):
@@ -155,7 +160,7 @@ def test_unrecognized_or_swallowed_plc_fences_fail_closed():
 
 
 def test_identical_code_repeated_across_blocks_does_not_require_rewording():
-    block = "```st\nx := TRUE; // " + GOOD + "\n```"
+    block = "```st\nx := TRUE; // AI: " + GOOD + "\n```"
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / "doc.md"
         path.write_text(block + "\n\n" + block, encoding="utf-8")
@@ -169,7 +174,7 @@ def test_final_document_digest_is_exact_bytes_for_crlf_and_bom():
     for prefix in (b"", b"\xef\xbb\xbf"):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "doc.md"
-            raw = "```st\nx := TRUE; // " + GOOD + "\n```\n"
+            raw = "```st\nx := TRUE; // AI: " + GOOD + "\n```\n"
             path.write_bytes(prefix + raw.replace("\n", "\r\n").encode("utf-8"))
             decoded = path.read_bytes().decode("utf-8-sig")
             blocks = checker["check_text"](decoded)["blocks"]
@@ -206,19 +211,20 @@ def test_require_every_line_flag_rejects_uncommented_closure_lines():
     with tempfile.TemporaryDirectory() as td:
         path = Path(td) / "comments.md"
         path.write_text('''```iecst
-IF xReady THEN // 准备信号成立时进入分支
-yStart := TRUE; // 本路径置位启动请求，消费者未知
+IF xReady THEN // AI: 准备信号成立时进入分支
+yStart := TRUE; // AI: 本路径置位启动请求，消费者未知
 END_IF;
 ```''', encoding="utf-8")
-        result = subprocess.run([sys.executable, "-B", str(SCRIPT), str(path), "--require-every-line"], capture_output=True, text=True)
-        assert result.returncode == 1 and "END_IF" in result.stdout, result.stdout + result.stderr
+        # 默认即逐行：结构闭合行缺 // AI: 尾注必须被拒，报新默认门禁。
+        result = subprocess.run([sys.executable, "-B", str(SCRIPT), str(path)], capture_output=True, text=True)
+        assert result.returncode == 1 and "L4" in result.stdout and "默认逐行注释缺失" in result.stdout, result.stdout + result.stderr
 
         path.write_text('''```iecst
-IF xReady THEN // 准备信号成立时进入分支
-yStart := TRUE; // 本路径置位启动请求，消费者未知
-END_IF; // 结束当前 IF 结构，不产生新的赋值
+IF xReady THEN // AI: 准备信号成立时进入分支
+yStart := TRUE; // AI: 本路径置位启动请求，消费者未知
+END_IF; // AI: 结束当前 IF 结构，不产生新的赋值
 ```''', encoding="utf-8")
-        result = subprocess.run([sys.executable, "-B", str(SCRIPT), str(path), "--require-every-line"], capture_output=True, text=True)
+        result = subprocess.run([sys.executable, "-B", str(SCRIPT), str(path)], capture_output=True, text=True)
         assert result.returncode == 0, result.stdout + result.stderr
 
 
@@ -273,20 +279,24 @@ def test_require_every_line_quality_remains_distinct_and_opt_in():
         path = Path(td) / "strict.md"
         path.write_text("```st\nEND_IF;\n```", encoding="utf-8")
         default = harness.run(SCRIPT, str(path))
-        strict = harness.run(SCRIPT, str(path), "--require-every-line")
-        assert default.returncode == 0, default.stdout
-        assert strict.returncode == 1, strict.stdout
-        assert str(path) in strict.stdout and "L2" in strict.stdout and "END_IF;" in strict.stdout
+        legacy = harness.run(SCRIPT, str(path), "--legacy-selective")
+        # 新默认拒收未注释的闭合行；历史选择性口径需显式开关，二者仍可区分。
+        assert default.returncode == 1, default.stdout
+        assert str(path) in default.stdout and "L2" in default.stdout and "默认逐行注释缺失" in default.stdout
+        assert legacy.returncode == 0, legacy.stdout
 
 def test_library_positive_plc_blocks_are_all_checked():
     sys.path.insert(0, str(ROOT / "scripts"))
     from check_plc_comments import check_text
     block_count = 0
-    for path in [ROOT / "SKILL.md", *sorted((ROOT / "references").glob("*.md"))]:
+    files = [ROOT / "SKILL.md", *sorted((ROOT / "references").rglob("*.md"))]
+    for path in files:
         report = check_text(path.read_text(encoding="utf-8"))
         block_count += len(report["blocks"])
         assert not report["errors"], f"{path.name}: {report['errors']}"
     assert block_count >= 7, "正例源码围栏不能全部改成 text 逃避校验"
+    # 子目录参考同样纳入扫描；数量随资产增长，下面的下限只防“全部改成 text 逃避校验”。
+    assert any("workflows" in p.as_posix() for p in files), "子目录参考未被扫描"
 
 
 def test_original_comment_can_be_preserved_with_substantive_append_only_note():
@@ -325,18 +335,18 @@ def test_final_requires_current_complete_semantic_review():
         }
         receipt = Path(td) / "review.json"
         receipt.write_text(json.dumps(review), encoding="utf-8")
-        result = harness.run(ROOT / "scripts/validate_handbook.py", str(path), "--final")
+        result = harness.run(ROOT / "scripts/validate_handbook.py", str(path), "--final", "--legacy-selective")
         assert result.returncode == 1 and "语义审查" in result.stdout, result.stdout
-        result = harness.run(ROOT / "scripts/validate_handbook.py", str(path), "--final", "--comment-review", str(receipt))
+        result = harness.run(ROOT / "scripts/validate_handbook.py", str(path), "--final", "--legacy-selective", "--comment-review", str(receipt))
         assert result.returncode == 0, result.stdout + result.stderr
         for field, value in (("status", "pending"), ("issues", ["意图未经源码支持"]), ("covered_lines", []), ("code_sha256", "stale"), ("evidence", "")):
             changed = json.loads(json.dumps(review))
             changed["blocks"][0][field] = value
             receipt.write_text(json.dumps(changed), encoding="utf-8")
-            result = harness.run(ROOT / "scripts/validate_handbook.py", str(path), "--final", "--comment-review", str(receipt))
+            result = harness.run(ROOT / "scripts/validate_handbook.py", str(path), "--final", "--legacy-selective", "--comment-review", str(receipt))
             assert result.returncode == 1 and "语义审查" in result.stdout, result.stdout + result.stderr
         receipt.write_text(json.dumps({**review, "document_sha256": "stale"}), encoding="utf-8")
-        result = harness.run(ROOT / "scripts/validate_handbook.py", str(path), "--final", "--comment-review", str(receipt))
+        result = harness.run(ROOT / "scripts/validate_handbook.py", str(path), "--final", "--legacy-selective", "--comment-review", str(receipt))
         assert result.returncode == 1 and "语义审查" in result.stdout, result.stdout
 
 
@@ -367,7 +377,7 @@ def test_closure_report_and_optional_omissions_match_both_final_entrypoints():
         for omitted in (None, [{"line": 9, "reason": "仅闭合条件范围，无新增动作"}]):
             review_fixture(raw, receipt, omitted)
             for script in (SCRIPT, ROOT / "scripts/validate_handbook.py"):
-                result = harness.run(script, str(doc), "--final", "--comment-review", str(receipt))
+                result = harness.run(script, str(doc), "--final", "--legacy-selective", "--comment-review", str(receipt))
                 assert result.returncode == 0, result.stdout
                 assert "省略的纯结构闭合行 [9]" in result.stdout, result.stdout
 

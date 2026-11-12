@@ -40,6 +40,7 @@ class PolicyTests(unittest.TestCase):
             tracked_markdown = result.stdout.decode().splitlines()
             # Approved reference additions must be checked before they are staged.
             tracked_markdown += [
+                'references/core-requirements.md',
                 'references/inline-comment-style.md',
                 'references/inline-comment-examples.md',
                 'references/skill-maintenance.md',
@@ -146,7 +147,8 @@ class PolicyTests(unittest.TestCase):
                       'BOOKSET must resolve to one authoritative body')
 
         bookset = (ROOT / 'templates/handbook-index.md').read_text(encoding='utf-8')
-        self.assertIn('| 册号 | 手册文件 | 对象范围 | 覆盖状态 | 来源证据 |', bookset)
+        self.assertIn('| 册号 | 手册文件 | 对象范围 | 类型 | 段数 | 覆盖状态 | 来源证据 |', bookset)
+        self.assertIn('| 可见时机 | 影响/后果 |', bookset)
         self.assertIn('跨册关系', bookset)
         self.assertIn('未知与缺口', bookset)
         self.assertIn('<!-- template-compat: BOOKSET@1.0 -> references/template-handbook-index.md -->', bookset,
@@ -155,14 +157,17 @@ class PolicyTests(unittest.TestCase):
         for section in ('## 四、单元索引', '## 五、跨单元逻辑关系', '## 六、覆盖与缺口'):
             self.assertIn(section, body, 'valid fields of the authoritative body must be kept')
 
-    def test_annotation_policy_defaults_to_selective_value_add_comments(self):
+    def test_annotation_policy_defaults_to_every_line_business_comments(self):
         skill = (ROOT / 'SKILL.md').read_text(encoding='utf-8')
         workflow = (ROOT / 'references/workflows/explain-code.md').read_text(encoding='utf-8')
         self.assertIn('注释前置参考', skill)
-        self.assertIn('默认按简洁业务句追加', workflow)
+        self.assertIn('默认逐行', skill)
+        self.assertIn('默认对每条非空源行（含结构闭合行）', workflow)
         self.assertIn('风格参考摘要', workflow)
         self.assertIn('长手册分段与续接', workflow)
-        self.assertIn('要求原样源码时不添加注释', workflow)
+        self.assertIn('当次明确要求原样源码时不添加注释', workflow)
+        self.assertIn('空白及纯注释行不补', workflow)
+        self.assertNotIn('按信息量**选点**', workflow)
 
     def test_variable_evidence_is_recorded_per_declaration(self):
         skill = (ROOT / 'SKILL.md').read_text(encoding='utf-8')
@@ -302,7 +307,7 @@ class GitTests(unittest.TestCase):
         self.git('init', '-q')
         # pre-commit now runs strict asset/link validation, so the fixture needs the
         # skill corpus and maintenance deps, not just scripts/.githooks.
-        for part in ('scripts', '.githooks', 'references', 'templates', 'evals'):
+        for part in ('scripts', '.githooks', 'references', 'templates', 'evals', 'assets'):
             if (ROOT / part).exists():
                 shutil.copytree(ROOT / part, self.repo / part,
                                 ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))

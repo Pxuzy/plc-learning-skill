@@ -13,9 +13,18 @@ VALID = 'docs(repo): 验证门禁\n\n- 合成测试\n'
 
 
 def main():
-    inherited = subprocess.run(['git', 'config', '--get', 'core.hooksPath'],
-                               capture_output=True, check=True).stdout.decode().strip()
+    probe = subprocess.run(['git', 'config', '--get', 'core.hooksPath'],
+                           capture_output=True, check=False)
+    inherited = probe.stdout.decode().strip()
+    if probe.returncode or not inherited:
+        print('skipped: 本机未配置 core.hooksPath（无宿主钩子链可集成）')
+        return 77
     host = Path(inherited).expanduser().resolve()
+    delegate = subprocess.run(['git', 'config', '--get', 'privacy.originalHooksPath'],
+                              capture_output=True, check=False).stdout.decode().strip()
+    if delegate and Path(delegate).expanduser().resolve() != (ROOT / '.githooks').resolve():
+        print('skipped: 宿主委托指向另一个检出（' + delegate + '），本仓库未安装自己的钩子链')
+        return 77
     with tempfile.TemporaryDirectory(prefix='plc-actual-host-') as folder:
         scratch = Path(folder)
         repo = scratch / 'repo'
@@ -83,7 +92,9 @@ def main():
 
 if __name__ == '__main__':
     try:
-        main()
+        code = main()
+        if code:
+            sys.exit(code)
     except RuntimeError as error:
         print(str(error), file=sys.stderr)
         sys.exit(1)

@@ -19,10 +19,14 @@ from pathlib import Path
 
 from make_manifest import ManifestError, build_units, pick_pattern, read_source
 
+# diff 只比较可见差异，单次命中即可定位；make_manifest 默认要求两处才认模式，
+# 避免把偶然出现的短词当结构标记。此处显式固定为 1，不作为默认值。
+DIFF_MIN_HITS = 1
+
 
 def snapshot(path: Path, pattern: str) -> dict:
     lines, sha = read_source(path)
-    chosen = pick_pattern(lines, pattern, min_hits=1)
+    chosen = pick_pattern(lines, pattern, min_hits=DIFF_MIN_HITS)
     units = build_units(lines, chosen)
     body: dict[str, dict] = {}
     for unit in units:
