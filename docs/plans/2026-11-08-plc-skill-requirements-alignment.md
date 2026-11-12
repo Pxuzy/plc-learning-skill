@@ -38,6 +38,7 @@
 ### 任务 1：清理基线与修复删除夹具后的检查
 
 **文件：**
+
 - 修改：`.gitignore`
 - 修改：`evals/README.md`
 - 修改：`scripts/project_policy.py`
@@ -55,6 +56,7 @@
 ### 任务 2：需求追溯、研发调研与基线文档
 
 **文件：**
+
 - 修改：`docs/architecture/traceability.md`
 - 修改：`docs/architecture/boundaries.md`
 - 修改：`docs/plans/development-plan.md`
@@ -72,6 +74,7 @@
 ### 任务 3：核心讲解规则与全中文化
 
 **文件：**
+
 - 修改：`SKILL.md`
 - 新建：`references/workflows/project-navigation.md`
 - 修改：`references/workflows/explain-code.md`
@@ -92,6 +95,7 @@
 ### 任务 4：局部讲解与完整手册模板
 
 **文件：**
+
 - 新建：`templates/code-explanation.md`
 - 新建：`templates/full-handbook.md`（仅在完整手册确实需要独立结构时）
 - 修改：`SKILL.md`、`references/workflows/explain-code.md`、`evals/check_foundation.py`
@@ -109,6 +113,7 @@
 ### 任务 5：隔离 ST 行为评测
 
 **文件：**
+
 - 修改：`evals/README.md`（只记录通用流程）
 - 修改：`evals/check_foundation.py`（仅增加不依赖私有样本内容的结构检查）
 - 测试输入：只读使用用户明确授权的仓库外 ST 源文件或代码文档；不纳入仓库
@@ -127,6 +132,7 @@
 ### 任务 6：Git 门禁与 Windows/POSIX 测试矩阵
 
 **文件：**
+
 - 修改：`scripts/project_policy.py`、`scripts/hooks.py`、`.githooks/`
 - 修改：`evals/tests/test_governance.py`、`evals/tests/test_hook_chain.py`、`evals/tests/host_integration.py`
 - 修改：`docs/maintenance/governance.md`
@@ -143,6 +149,7 @@
 ### 任务 7：四品牌工程解析的证据门
 
 **文件：**
+
 - 修改：`references/vendors/README.md` 及实际触发的品牌说明
 - 新建解析器/解析回归文件：仅在具体组合与接口经方案审查后确定，不预建空目录或通用占位实现
 
@@ -157,6 +164,7 @@
 ### 任务 8：加载兼容、独立验收与交付
 
 **文件：**
+
 - 修改：`references/standards/README.md`、`docs/architecture/traceability.md`、相关发布说明
 - 产物：目标平台加载检查结果；用户审阅用 Markdown 讲解只放获准的交付位置
 

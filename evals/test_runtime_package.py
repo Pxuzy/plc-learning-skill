@@ -48,5 +48,65 @@ class RuntimePackageTests(unittest.TestCase):
             self.assertNotEqual(bad.returncode,0)
             self.assertIn('local-code-explanation.md',bad.stdout)
 
+    @staticmethod
+    def omitted_assets():
+        import ast
+        tree = ast.parse((ROOT / 'scripts/validate_skill.py').read_text())
+        assignment = next(node for node in tree.body
+                          if isinstance(node, ast.Assign) and
+                          any(isinstance(t, ast.Name) and t.id == 'MAINTENANCE_ASSETS'
+                              for t in node.targets))
+        return set(ast.literal_eval(assignment.value))
+
+    def test_distribution_docs_match_exact_maintenance_scope(self):
+        import re
+        omitted = self.omitted_assets()
+        self.assertEqual(len(omitted), 4)
+        for relative, marker in (
+            ('references/catalog.md', '默认运行包还排除'),
+            ('references/skill-maintenance.md', '维护树保留历史兼容与研发资产：'),
+        ):
+            text = (ROOT / relative).read_text()
+            paragraph = next(line for line in text.splitlines() if marker in line)
+            self.assertEqual(set(re.findall(
+                r'`((?:references|scripts)/[^`]+\.(?:md|py))`',
+                paragraph.split('；它们', 1)[0])), omitted)
+        catalog = (ROOT / 'references/catalog.md').read_text()
+        for relative in omitted:
+            row = next(line for line in catalog.splitlines()
+                       if line.startswith('| `' + relative + '` |'))
+            self.assertIn('仅维护树', row, relative)
+        trial = (ROOT / 'references/skill-model-trial.md').read_text()
+        self.assertIn('仅指试跑台搭建、模型/工具核对与生成器分层验收', trial)
+        self.assertIn('模板校验器反例集仍见', trial)
+
+    def test_trimmed_runtime_keeps_core_and_rejects_reader_dead_links(self):
+        omitted = tuple(sorted(self.omitted_assets()))
+        with tempfile.TemporaryDirectory() as temp:
+            dest = Path(temp) / 'plc-learning-skill'
+            shutil.copytree(ROOT, dest, ignore=shutil.ignore_patterns(
+                '.git', '__pycache__', 'evals', 'docs', '.githooks'))
+            for relative in omitted + (
+                'scripts/git_privacy_gate.py', 'scripts/hooks.py',
+                'scripts/project_policy.py',
+            ):
+                (dest / relative).unlink()
+            cmd = [sys.executable, '-B', str(dest / 'scripts/validate_skill.py'),
+                   str(dest), '--strict', '--runtime']
+            good = subprocess.run(cmd, capture_output=True, text=True)
+            self.assertEqual(good.returncode, 0, good.stdout + good.stderr)
+            # Omittable maintenance paths are not a dead-reader-link exemption.
+            guide = dest / 'references/local-code-explanation.md'
+            original = guide.read_text()
+            guide.write_text(original + '\n[历史样例](example-handbook.md)\n')
+            bad = subprocess.run(cmd, capture_output=True, text=True)
+            self.assertNotEqual(bad.returncode, 0)
+            self.assertIn('example-handbook.md', bad.stdout)
+            guide.write_text(original)
+            (dest / 'references/example-block-handbook.md').unlink()
+            bad = subprocess.run(cmd, capture_output=True, text=True)
+            self.assertNotEqual(bad.returncode, 0)
+            self.assertIn('example-block-handbook.md', bad.stdout)
+
 if __name__=='__main__':
     unittest.main()

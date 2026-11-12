@@ -58,7 +58,7 @@ python -B scripts/check_markdown_format.py 讲解稿.md --strict --json
 
 ### 提交标题
 
-```
+```text
 <type>(<scope>): <中文说明>
 ```
 

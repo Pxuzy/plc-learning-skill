@@ -84,11 +84,19 @@ def local_targets(text: str, source: str, *, include_code_paths: bool = True) ->
 
 
 MAINTENANCE_SCRIPTS = {'scripts/git_privacy_gate.py', 'scripts/hooks.py', 'scripts/project_policy.py'}
+# Exact distribution-only exclusions; full repository validation still requires them.
+MAINTENANCE_ASSETS = {
+    'references/example-handbook.md',
+    'references/example-fb.md',
+    'scripts/legacy_handbook_validator.py',
+    'references/external/README.md',
+}
 
 
 def maintenance_target(target: str) -> bool:
     parts = Path(target).parts
-    return bool(parts and parts[0] in {'evals', 'docs', '.githooks'}) or target in MAINTENANCE_SCRIPTS
+    return (bool(parts and parts[0] in {'evals', 'docs', '.githooks'}) or
+            target in MAINTENANCE_SCRIPTS or target in MAINTENANCE_ASSETS)
 
 
 def catalog_checks(skill_dir: Path, text: str, errors: list[str], runtime: bool = False) -> None:

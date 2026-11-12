@@ -1,8 +1,17 @@
 # 资产目录与规则路由
 
+按任务读取：
+
+- [规则权威与验收证据](#ref-nav-01)
+- [References、模板与示例](#ref-nav-02)
+- [Scripts](#ref-nav-03)
+- [Evals](#ref-nav-04)
+
 统一登记 references、模板、示例、scripts、evals 的职责和加载条件，按需读取，不复制规则正文。模板 ID/版本/触发/组合/降级只由 `references/template-index.md` 注册；其它资产随技能版本维护，“当前”参与离线执行，“历史”仅保留兼容。新增资产须登记，缓存不登记。
 
 首列反引号路径只做资产核对，不能建立导航；职责列的主题 Markdown 链接才是按需导航。参考文件仅登记而无可达引用视为孤儿，脚本/evals 登记也不充当语义导航。
+
+<a id="ref-nav-01"></a>
 
 ## 规则权威与验收证据
 
@@ -30,9 +39,11 @@
 | PLC-FB-STATE | FB 保持语义分三层：同实例调用间保持属语言语义；首次初值与初始化未见即未知；掉电/下载/RETAIN 未给资料即未知；不得以②③未知否定①；`SKILL.md` 领域底线、`references/code-reading.md` | HBK、ST；`scripts/validate_handbook.py` | `evals/test_first_principles_contract.py#test_short_no_else_example_derives_state_and_two_scans` / `evals/test_handbook_validator.py#test_readable_code_example_requires_initial_state_sequence_and_outcome` | 当前 |
 | PLC-TEMPLATE-ADDITIVE | 用户要求在既有模板上增加目录/分章/编号/分块时，原栏目、顺序、变量表、四字段与审查状态逐字保留，新导航放外层或可选槽位；不得改名、合并或重写骨架；`references/template-index.md` | 全部已注册模板；`scripts/validate_template_index.py`、`scripts/validate_handbook.py` | `evals/test_handbook.py#test_template_registry_is_the_single_routing_and_version_source` / `evals/test_handbook_validator.py#test_registered_template_composition_is_accepted` | 当前 |
 
+<a id="ref-nav-02"></a>
+
 ## References、模板与示例
 
-资产保持 references 原路径。以下均为当前资产；规范随技能，模板版本查索引，示例仅示范结构、非工程事实。状态列简称“规范/注册/模板/示例”。
+资产保持 references 原路径。以下均为当前资产；规范随技能，模板版本查索引，示例仅示范结构、非工程事实。本节按主题聚簇，模式 B 的脚本与夹具邻接其权威参考；状态列按实际职责标注规范、注册、模板、示例、脚本、CLI、测试夹具、运行参考或必经工作流。
 
 | 资产 | 职责 | 加载时机 / 场景 | 权威规则 / 验证器 | 状态 / 适用范围 |
 |---|---|---|---|---|
@@ -71,7 +82,7 @@
 | `references/reader-first-progression.md` | [读者递进式讲解：模板被判空泛时的重建骨架](reader-first-progression.md) | 用户否掉模板或要求按第一性原理重做阅读路径时 | PLC-EVIDENCE-LEVELS；`evals/test_handbook.py` | 规范 |
 | `references/skill-model-trial.md` | [隔离试跑台、模型/工具调用核对与生成器真实样本验收](skill-model-trial.md) | 换模型或换工具集试跑技能、改造生成器后验收 | 人工验收；`evals/README.md` | 规范 |
 | `references/skill-maintenance.md` | [维护入口：仓库/安装副本辨认、基线保护、规则承载点与模板验收](skill-maintenance.md) | 仅维护技能、审计仓库或核对模板改造时 | `references/workflow.md`；`evals/test_catalog.py` | 规范 / 维护 |
-| `references/external/README.md` | [外部 Skill 案例调研与取舍边界](external/README.md) | 设计工作流时参考，不进入日常讲解 | 非厂商权威；人工 | 调研 / 非运行资产 |
+| `references/external/README.md` | 外部 Skill 案例调研与取舍边界（仅维护树） | 设计工作流时参考，不进入日常讲解 | 非厂商权威；人工 | 调研 / 非运行资产 |
 | `references/standards/README.md` | [Skill 格式、平台与厂商资料核对](standards/README.md) | 核对来源层级与能力边界时 | 只读资料；人工 | 调研 / 非运行资产 |
 | `references/vendors/README.md` | [厂商资料导航、格式经验登记与支持边界](vendors/README.md) | 匹配品牌/产品线/格式/版本，或积累脱敏解析经验时 | `references/workflows/read-project.md`；`evals/test_project_reading.py` | 导航 / 方法与验证分离 |
 | `references/vendors/siemens/README.md` | [西门子资料入口与未验证边界](vendors/siemens/README.md) | 涉及 SCL、I/O、诊断或在线行为前 | 只读资料；人工 | 调研 / 未验证支持 |
@@ -89,14 +100,18 @@
 | `references/template-structure-map.md` | [MAP 结构分册骨架](template-structure-map.md) | 对象清单、执行树、段索引、关系与阅读顺序 | MAP；`scripts/validate_structure_map.py` | 模板 |
 | `references/template-handbook-index.md` | [BOOKSET 多册总览与分册索引](template-handbook-index.md) | 多对象拆册 | BOOKSET；`evals/test_handbook.py` | 模板 |
 | `references/example-block-handbook.md` | [当前块级手册样例：变量前置、行内注释与整体说明](example-block-handbook.md) | 新稿或检查当前版式 | HBK@3.0；`evals/test_block_layout.py` | 样例 |
-| `references/example-handbook.md` | [历史2.x手册兼容与源码标注样例](example-handbook.md) | 仅历史兼容回归，新稿使用example-block-handbook | HBK；`scripts/validate_handbook.py`、`scripts/check_document_layout.py` | 示例 |
-| `references/example-fb.md` | [历史2.x假想FB/实例兼容样例](example-fb.md) | 只对照接口证据，不作当前块级版式范本 | HBK、FB、INTERFACE；`scripts/validate_handbook.py` | 示例 |
+| `references/example-handbook.md` | 历史2.x手册兼容与源码标注样例（仅维护树） | 仅历史兼容回归，新稿使用example-block-handbook | HBK；`scripts/validate_handbook.py`、`scripts/check_document_layout.py` | 示例 |
+| `references/example-fb.md` | 历史2.x假想FB/实例兼容样例（仅维护树） | 只对照接口证据，不作当前块级版式范本 | HBK、FB、INTERFACE；`scripts/validate_handbook.py` | 示例 |
 | `references/example-overview.md` | [一屏总览成品示范](example-overview.md) | OVR 呈现参照 | OVR；`scripts/validate_overview.py` | 示例 |
 | `references/example-structure-map.md` | [结构地图成品示范](example-structure-map.md) | MAP 呈现参照 | MAP；`scripts/validate_structure_map.py` | 示例 |
+| `references/runtime-guidance.md` | [按需读取的PLC取证、保持、教学、稿件修订与交付细则](runtime-guidance.md) | 当前问题涉及对应难点时，不通读维护记录 | 核心规则与局部权威参考 | 运行参考 |
+| `references/output-validation.md` | [生成后落盘、执行校验、按错误修稿并重验](output-validation.md) | 局部讲解、完整手册与教学重建成品生成后 | 已有局部、注释、Markdown与完整性校验器 | 必经工作流 |
+
+<a id="ref-nav-03"></a>
 
 ## Scripts
 
-参数以脚本帮助和 workflow 为准；当前脚本均使用标准库，不改 PLC 工程。独立运行包按分发范围排除 `evals/`、`docs/`、Git 门禁及安装器等维护资产，下表保留仓库登记并不表示这些维护路径随运行包提供；运行包用 `validate_skill.py --strict --runtime` 检查，普通运行资产仍须齐全。
+参数以脚本帮助和 workflow 为准；当前脚本均使用标准库，不改 PLC 工程。独立运行包按分发范围排除 `evals/`、`docs/`、Git 门禁及安装器等维护资产，下表保留仓库登记并不表示这些维护路径随运行包提供；默认运行包还排除历史兼容样例、旧 CLI 与研发调研：`references/example-handbook.md`、`references/example-fb.md`、`scripts/legacy_handbook_validator.py`、`references/external/README.md`，维护树保留全部原文件。运行包用 `validate_skill.py --strict --runtime` 检查，只允许精确列出的维护资产省略，普通运行资产与正文读者链接仍须齐全。
 
 | 资产 | 职责 | 加载时机 / 场景 | 权威规则 / 验证器 | 状态 / 适用范围 |
 |---|---|---|---|---|
@@ -115,9 +130,8 @@
 | `scripts/validate_structure_map.py` | MAP 章节、证据、段索引与阅读顺序 | 结构分册交付前 | MAP、PLC-EVIDENCE-LEVELS；`evals/test_structure_map.py` | CLI |
 | `scripts/check_structure_drift.py` | 文档与 manifest 漂移，只报告 | 结构是否过期 | structure-mapping；`evals/test_structure_drift.py` | CLI |
 | `scripts/block_layout.py` | 块级五部分、关键变量前置与真实正文检查 | 手册校验器自动调用 | `evals/test_block_layout.py` | 校验器 |
-| `evals/test_one_page_prompt.py` | [一页模板契约回归](one-page-prompt.md)：源码保真为第一条硬规则、规则数 ≤6、同一变量字段与五部分骨架、长结构不机械拆断、超限指示不得暗示删除 | 弱模型漏段或截短代码时 | `references/one-page-prompt.md` | 回归 |
 | `scripts/validate_handbook.py` | 适用章节、模板组合、模块、安全与来源门禁 | 手册交付前；完整稿加 --final | HBK 与专题；`evals/test_handbook_validator.py` | CLI |
-| `scripts/legacy_handbook_validator.py` | 保留旧 `--source/--handbook` 契约：五部分顺序、源码完整覆盖与不回声；仅供旧回归使用，不替代新默认 CLI | 运行 evals/tests/test_handbook_validator.py 或核对历史 CLI 时 | `evals/tests/test_handbook_validator.py` | 兼容 / 维护 |
+| `scripts/legacy_handbook_validator.py` | 保留旧 `--source/--handbook` 契约：五部分顺序、源码完整覆盖与不回声；仅供旧回归使用，不替代新默认 CLI（仅维护树） | 仅在完整维护树运行 evals/tests/test_handbook_validator.py 或核对历史 CLI 时；默认运行包不提供 | `evals/tests/test_handbook_validator.py` | 兼容 / 维护 |
 | `scripts/check_plc_comments.py` | 全文 PLC 围栏逐单元覆盖、默认逐行尾注、可选条件 AI 尾注（--require-condition-ai）、有限低价值模式及审查记录检查；--legacy-selective 仅历史夹具审查，--original-source 仅当次原样源码 | 教学注释文档；默认逐行（--require-every-line 为兼容别名），最终加 --final 与 --comment-review | PLC-COMMENT-VALUE；`evals/test_comment_quality.py` | 规范；非语义证明 |
 | `scripts/requirements-markdown.txt` | 严格 Markdown 渲染检查依赖清单 | 使用 pip 安装一次；缺依赖不放行 | markdown-it-py 3.x / 4.x | 运行依赖 |
 | `scripts/markdown_syntax.py` | CommonMark 与管道表格的实际渲染节点、逐表列数、空行、锚点与引用链接检查 | 格式 CLI 与严格技能校验自动调用；依赖 markdown-it-py | `evals/test_markdown_syntax.py` | CLI / 确定性 |
@@ -129,10 +143,14 @@
 | `scripts/hooks.py` | 本仓库 hooks 的 install、doctor 与 restore；拒绝未知宿主与覆盖既有委托 | 维护提交门禁或诊断 hook 链时 | `docs/maintenance/governance.md`；`evals/tests/test_hook_chain.py` | CLI / 维护 |
 | `scripts/project_policy.py` | 提交格式、暂存树与候选隐私策略的唯一实现；诊断只输出类别与序号 | 修改门禁政策或诊断提交失败时 | `docs/maintenance/governance.md`；`evals/tests/test_governance.py` | CLI / 维护 |
 
+
+<a id="ref-nav-04"></a>
+
 ## Evals
 
 | 资产 | 职责 | 加载时机 / 场景 | 权威规则 / 验证器 | 状态 / 适用范围 |
 |---|---|---|---|---|
+| `evals/test_one_page_prompt.py` | [一页模板契约回归](one-page-prompt.md)：源码保真为第一条硬规则、规则数 ≤6、同一变量字段与五部分骨架、长结构不机械拆断、超限指示不得暗示删除 | 弱模型漏段或截短代码时 | `references/one-page-prompt.md` | 回归 |
 | `evals/test_markdown_syntax.py` | 逐表渲染、缺表头/分隔行、HTML吞表、列截断/补齐、转义竖线、空行、锚点与依赖缺失反例 | 修改格式门禁后 | `scripts/markdown_syntax.py`、check_markdown_format | 离线 / 实际CLI |
 | `evals/test_delivery_boundaries.py` | 图形分支、源码导航与分发验收边界 | 修改局部交付规则后 | `references/local-code-explanation.md`、workflow | 静态契约 |
 | `evals/test_runtime_package.py` | 独立运行包正例、缺运行资产及正文/模板死链必拒（含标题/尖括号写法） | 修改运行包检查范围后 | `scripts/validate_skill.py` | 回归 |
@@ -140,7 +158,7 @@
 | `evals/test_reviewed_content_consistency.py` | 默认注释、方向、语言、层级与原生分组一致性 | 修改审定内容后 | 讲解规则与模板 | 静态契约 |
 | `evals/test_template_authority.py` | 单一模板注册与兼容呈现、路由 | 修改模板注册后 | 模板索引与 explain-code | 静态契约 |
 
-`evals/run.py` 自动发现本地 test 文件，不调用模型/联网；历史 JSON 不执行。下列 test 均为当前自动回归，仅查确定性契约，语义/平台另验；其它状态单列。
+`evals/run.py` 自动发现本地 test 文件，不调用模型/联网；历史 JSON 不执行。以下为 Evals 目录资产，自动测试、人工案例和历史快照按状态区分；自动回归仅查确定性契约，语义/平台另验。
 
 | 资产 | 职责 | 加载时机 / 场景 | 权威规则 / 验证器 | 状态 / 适用范围 |
 |---|---|---|---|---|
@@ -197,5 +215,6 @@
 | `evals/tests/test_governance.py` | 提交政策、候选扫描、隐私负例与 hooks 状态回归 | 修改 project_policy 或 hooks 后 | `scripts/project_policy.py` | 回归 / 维护 |
 | `evals/tests/test_handbook_validator.py` | 旧 `--source/--handbook` 契约的结构、顺序、源码覆盖与拒绝输出回归 | 修改兼容校验器后 | `scripts/legacy_handbook_validator.py` | 回归 / 维护 |
 | `evals/tests/test_hook_chain.py` | 支持的宿主委托链 stub 回归 | 修改 hooks 委托链后 | `scripts/hooks.py` | 回归 / 维护 |
+| `evals/test_generation_contract.py` | 降级提示逐行覆盖、正例尾注、保真表述与执行闭环回归 | 修改生成契约后 | 一页提示与默认注释门禁 | 回归 |
 
 根目录维护资产：SKILL.md 是技能身份与运行入口，CHANGELOG.md 记录用户可感知变化，LICENSE 保持原授权。它们不在上述三类目录的资产集合内；用户的 WORK_REPORT.md 与 scratch/ 也不参与登记、暂存或自动清理。

@@ -26,7 +26,7 @@ python3 -B evals/run.py             # 全部跑一遍
 | `test_audit_contracts.py` | 临时源文件→manifest→推荐 ST/FB 成品→源码对账/注释/final；首网前声明、来源邻接、局部状态、只读、词法扫描、围栏正文与 Mermaid 正反例 |
 | `test_handbook.py` | 手册交付契约、参考文件精简、用例存在 |
 | `test_first_principles_contract.py` | A/B 到手册/深讲/教学的必要性推导；短 IF 保持、互锁复位、意图未知、纯归档、按歧义暂停的源码确认门禁及缺失变异；仅静态内容契约，不证明会话表现 |
-- `test_block_layout.py`：关键变量前置、块级正文与缺项/旧列表反向用例。
+| `test_block_layout.py` | 关键变量前置、块级正文与缺项/旧列表反向用例 |
 | `test_handbook_validator.py` | 按适用性校验、模板组合、目录锚点、源码与安全边界正反例 |
 | `test_comment_quality.py` | 全文 PLC 行内覆盖、复述/空话/重复、字符串边界、库内正例和最终逐块审查记录；严格逐行模式覆盖闭合行、空尾注、注释后代码及跨行条件/调用；不证明任意业务语义 |
 | `test_template_index.py` | 模板 ID、版本、组合对称性与路由正反例 |

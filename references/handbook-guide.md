@@ -141,7 +141,7 @@ C/HBK 路线未指定时使用**代码深度**；用户要求多讲代码、讲�
 
 **易混淆点**（复杂段补充）：在相同输入与假设下比较原版和单因素改版的行为，不预设未给需求下谁对谁错。示例：
 
-```
+```text
 原版：IF xRequest THEN xClampRequest := TRUE; END_IF;
 改版：xClampRequest := xRequest;
 差异：同实例可保持、无其他写入时，请求撤销使改版清 FALSE，原版本次不写。
