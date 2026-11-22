@@ -62,12 +62,15 @@ class GenerationContract(unittest.TestCase):
         runtime_rule = next(line for line in runtime.splitlines() if line.startswith('- **PLC-COMMENT-PRECEDENCE'))
         self.assertEqual(entry_rule, runtime_rule)
         self.assertIn('模板来源限定到特定分支时', text)
-        for phrase in ('用户指定', '他指定', '用户要求**把原作者注释风格',
+        for phrase in ('用户指定某分支', '他指定', '用户要求**把原作者注释风格',
                        'git show <提交>:<模板>', '扩样是增量', '整体相似度百分比'):
             self.assertNotIn(phrase, text)
-        for phrase in ('当次明确要求优先于默认设置', '默认逐行追加注释',
+        for phrase in ('当次明确要求优先于默认设置', '逐行教学尾注',
+                       '仅用于讲解与教学交付', '编写或修改代码时不自动添加教学尾注',
                        'references/skill-maintenance.md'):
             self.assertIn(phrase, text)
+        self.assertIn('仅用于讲解与教学交付', entry_rule)
+        self.assertIn('编写或修改代码时不自动添加教学尾注', entry_rule)
         for phrase in ('分支名、提交号', 'git show <提交>:<模板>',
                        '整份候选全文', '项目自定义', '纸面断言',
                        '确认前不接入、不写技能目录'):

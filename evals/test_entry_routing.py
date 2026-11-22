@@ -253,6 +253,16 @@ def test_local_scope_does_not_reduce_requested_depth():
     assert '直接粘贴的片段按可见范围核对后直接讲解' in body
 
 
+def test_explicit_user_tasks_override_default_explanation():
+    body = selector()
+    assert "默认讲解" in body
+    assert "未说明要做什么时" in body
+    assert "只提供 PLC 代码或工程" in body
+    assert "提取代码" in body and "只返回源码" in body and "不附加讲解" in body
+    assert "编写或修改代码" in body and "不自动转成讲解或教学重建" in body
+    assert "按其执行" in body
+
+
 def read_heading(path: str, heading: str) -> str:
     text = (ROOT / path).read_text(encoding='utf-8')
     match = re.search(r'(?m)^' + re.escape(heading) + r'\s*$',text)
@@ -302,6 +312,7 @@ def main() -> int:
         test_mode_b_ordered_read_trace_and_deep_method_sections,
         test_code_reading_local_boundaries_at_actual_conflict_sections,
         test_local_scope_does_not_reduce_requested_depth,
+        test_explicit_user_tasks_override_default_explanation,
         test_common_entry_cannot_downgrade_mode_b_template,
         test_selector_has_five_modes_and_minimum_scope_default,
         test_local_template_is_bounded_and_keeps_safety_floor,
