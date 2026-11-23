@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """A runtime archive may omit maintenance assets, never runtime ones."""
 from pathlib import Path
+import os
 import shutil
 import subprocess
 import sys
@@ -91,10 +92,18 @@ class RuntimePackageTests(unittest.TestCase):
                 'scripts/project_policy.py',
             ):
                 (dest / relative).unlink()
+            self.assertTrue((dest / 'scripts/smc2_locate_pou.py').is_file())
             cmd = [sys.executable, '-B', str(dest / 'scripts/validate_skill.py'),
                    str(dest), '--strict', '--runtime']
             good = subprocess.run(cmd, capture_output=True, text=True)
             self.assertEqual(good.returncode, 0, good.stdout + good.stderr)
+            env = os.environ.copy()
+            env.pop('PYTHONPATH', None)
+            cli = subprocess.run(
+                [sys.executable, '-B', 'scripts/smc2_locate_pou.py', '--help'],
+                cwd=dest, env=env, capture_output=True, text=True,
+            )
+            self.assertEqual(cli.returncode, 0, cli.stdout + cli.stderr)
             # Omittable maintenance paths are not a dead-reader-link exemption.
             guide = dest / 'references/local-code-explanation.md'
             original = guide.read_text()
